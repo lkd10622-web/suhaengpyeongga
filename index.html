@@ -3,35 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트 학업 플래너</title>
+    <title>AI 스마트 학업 플래너</title>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; max-width: 600px; margin: 30px auto; padding: 20px; background-color: #f0f2f5; color: #333; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h1, h2 { text-align: center; color: #4A90E2; }
+        h1, h2 { text-align: center; color: #4A90E2; margin-bottom: 10px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, textarea { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; }
+        input, textarea, select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
         button { width: 100%; padding: 12px; background-color: #4A90E2; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
         button:hover { background-color: #357ABD; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
         .logout-btn { background-color: #e74c3c; }
         .logout-btn:hover { background-color: #c0392b; }
         .ai-btn { background-color: #9b59b6; }
         .ai-btn:hover { background-color: #8e44ad; }
-        .tts-btn { background-color: #2ecc71; width: auto; padding: 5px 10px; font-size: 12px; margin: 5px 0; }
-        .schedule-item { background: #f9f9f9; padding: 15px; border-left: 5px solid #4A90E2; margin-bottom: 10px; border-radius: 4px; position: relative; }
-        .ai-box { background: #f5efff; border: 1px solid #d6c2f0; padding: 10px; margin-top: 10px; border-radius: 6px; font-size: 14px; white-space: pre-wrap; }
+        .tts-btn { background-color: #2ecc71; width: auto; padding: 6px 12px; font-size: 13px; margin: 5px 0; }
+        .schedule-item { background: #f9f9f9; padding: 15px; border-left: 5px solid #4A90E2; margin-bottom: 15px; border-radius: 4px; }
+        .ai-box { background: #f5efff; border: 1px solid #d6c2f0; padding: 12px; margin-top: 10px; border-radius: 6px; font-size: 14px; white-space: pre-wrap; line-height: 1.5; }
         .hidden { display: none; }
         .user-info { text-align: center; margin-bottom: 15px; font-weight: bold; }
+        audio { width: 100%; margin-top: 8px; }
     </style>
 </head>
 <body>
 
     <h1>🧠 AI 스마트 학업 플래너</h1>
-    <p style="text-align:center; color:#666;">학업 스트레스를 줄여주는 나만의 공부 비서</p>
+    <p style="text-align:center; color:#666; margin-top:-5px;">수행평가 완벽 대비를 위한 나만의 AI 비서</p>
 
     <div id="loginSection" class="card">
         <h2>로그인 후 시작하기</h2>
-        <p style="text-align: center;">내 개인 일정과 AI 기능을 안전하게 보관합니다.</p>
+        <p style="text-align: center; color: #777;">내 개인 일정과 AI 분석 데이터를 안전하게 관리합니다.</p>
         <button id="loginBtn">🌐 Google 계정으로 로그인</button>
     </div>
 
@@ -46,18 +48,27 @@
             <input type="text" id="subject" placeholder="예: 정보, 수학, 세계사">
         </div>
         <div class="form-group">
-            <label>시험 범위 / 수행 내용</label>
-            <textarea id="examRange" rows="3" placeholder="예: 교과서 10p~35p, 파이썬 조건문 문법"></textarea>
+            <label>시험 범위 / 수행평가 내용</label>
+            <textarea id="examRange" rows="3" placeholder="예: 교과서 10p~35p, 파이썬 조건문 구조와 예제"></textarea>
         </div>
         <div class="form-group">
             <label>마감 / 시험 날짜</label>
             <input type="date" id="examDate">
         </div>
+        <div class="form-group">
+            <label>목소리 타입 선택 (OpenAI TTS)</label>
+            <select id="voiceSelect">
+                <option value="alloy">alloy (기본)</option>
+                <option value="echo">echo (부드러운 남성)</option>
+                <option value="nova">nova (차분한 여성)</option>
+                <option value="shimmer">shimmer (밝은 여성)</option>
+            </select>
+        </div>
         <button id="submitBtn">📅 플래너에 일정 등록</button>
 
         <hr style="margin: 25px 0; border: 0; border-top: 1px solid #eee;">
 
-        <h2>내 일정 목록</h2>
+        <h2>📋 내 일정 및 AI 학습 지원 목록</h2>
         <div id="scheduleList"></div>
     </div>
 
@@ -66,7 +77,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
     <script>
-        // 보낸주신 실제 설정값 자동 주입 완료!
+        // Firebase 설정값 정보
         const firebaseConfig = {
             apiKey: "AIzaSyAbZphaQMs38wC0zRDBXOT7oiRe2p8ABQs",
             authDomain: "yaho-9c14e.firebaseapp.com",
@@ -78,6 +89,9 @@
             measurementId: "G-SEWH1149ZZ"
         };
 
+        // 방금 보내주신 새로운 구글 Apps Script 웹앱 URL 적용 완료!
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyKETxRpA3UY5QmdKQFhOC2epvY8_jWKiwxJt2YP4IaN2HhQRmWHRgeLJ2EArzKtn4KA/exec';
+
         // Firebase 초기화
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
@@ -85,7 +99,7 @@
         let currentUser = null;
 
         // ----------------------------------------------------
-        // [요소 3] 로그인 / 로그아웃 상태 감지 및 구현
+        // Google 인증 로그인 세션 제어
         // ----------------------------------------------------
         auth.onAuthStateChanged((user) => {
             if (user) {
@@ -93,7 +107,7 @@
                 document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('appSection').classList.remove('hidden');
                 document.getElementById('userName').innerText = user.displayName;
-                loadSchedules(user.uid); // 내 로그인 ID에 맞는 일정 불러오기
+                loadSchedules(user.uid); 
             } else {
                 currentUser = null;
                 document.getElementById('loginSection').classList.remove('hidden');
@@ -101,20 +115,17 @@
             }
         });
 
-        // 구글 로그인 버튼
         document.getElementById('loginBtn').addEventListener('click', () => {
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithPopup(provider).catch(err => alert("로그인 실패: " + err.message));
         });
 
-        // 로그아웃 버튼
         document.getElementById('logoutBtn').addEventListener('click', () => {
             auth.signOut();
         });
 
-
         // ----------------------------------------------------
-        // [요소 2] 데이터 연동: 일정 저장하기 (사용자 UID별 분리)
+        // Firebase Realtime Database 일정 추가(C)
         // ----------------------------------------------------
         document.getElementById('submitBtn').addEventListener('click', () => {
             const subject = document.getElementById('subject').value;
@@ -123,29 +134,25 @@
 
             if (!subject || !range || !date) { alert("모든 칸을 입력해 주세요!"); return; }
 
-            // 유저 고유 ID(uid) 폴더 안에 일정을 저장하여 개별 관리 실현
             database.ref('user_schedules/' + currentUser.uid).push({
                 subject: subject,
                 range: range,
                 date: date
             }).then(() => {
-                // [요소 5] TTS 즉시 실행: 등록 완료 안내 음성
-                speak(`${subject} 일정이 정상 등록되었습니다. 열공하세요!`);
-                
+                alert("일정이 등록되었습니다.");
                 document.getElementById('subject').value = "";
                 document.getElementById('examRange').value = "";
                 document.getElementById('examDate').value = "";
             });
         });
 
-
         // ----------------------------------------------------
-        // [요소 2] 데이터 연동: 목록 불러오기 및 UI 렌더링
+        // Firebase에서 데이터 로그인한 유저별로 불러오기(R)
         // ----------------------------------------------------
         function loadSchedules(uid) {
             database.ref('user_schedules/' + uid).on('value', (snapshot) => {
                 const listDiv = document.getElementById('scheduleList');
-                listDiv.innerHTML = ""; // 기존 목록 초기화
+                listDiv.innerHTML = ""; 
                 
                 if(!snapshot.exists()) {
                     listDiv.innerHTML = "<p style='text-align:center; color:#999;'>등록된 일정이 없습니다.</p>";
@@ -155,18 +162,19 @@
                 snapshot.forEach((childSnapshot) => {
                     const key = childSnapshot.key;
                     const item = childSnapshot.val();
+                    const selectedVoice = document.getElementById('voiceSelect').value;
 
                     const itemHtml = `
                         <div class="schedule-item">
                             <h3>[${item.subject}] 시험/수행평가</h3>
-                            <p><strong>날짜:</strong> ${item.date}</p>
-                            <p><strong>범위:</strong> ${item.range}</p>
+                            <p><strong>📅 시험 날짜:</strong> ${item.date}</p>
+                            <p><strong>📖 시험 범위:</strong> ${item.range}</p>
                             
-                            <button class="tts-btn" onclick="speak('${item.subject} 시험 범위는 ${item.range.replace(/\n/g, " ")} 입니다.')">🔊 범위 읽어주기</button>
+                            <button class="tts-btn" id="tts-btn-${key}" onclick="generateOpenAITTS('${key}', '${item.subject} 시험 범위는 ${item.range.replace(/\n/g, " ")} 입니다.', '${selectedVoice}')">🔊 범위 음성 생성 (OpenAI TTS)</button>
+                            <div id="audio-container-${key}"></div>
                             
-                            <button class="ai-btn" onclick="askAI('${key}', '${item.subject}', '${item.range}')">✨ AI 핵심요약 및 예상문제 요청</button>
-                            
-                            <div id="ai-box-${key}" class="ai-box hidden">AI 분석 중...</div>
+                            <button class="ai-btn" id="ai-btn-${key}" onclick="generateGPTAnalysis('${key}', '${item.subject}', '${item.range}')">✨ OpenAI GPT 족보 요약 요청</button>
+                            <div id="ai-box-${key}" class="ai-box hidden"></div>
                         </div>
                     `;
                     listDiv.innerHTML += itemHtml;
@@ -174,39 +182,94 @@
             });
         }
 
+        // ----------------------------------------------------
+        // [조건 5] 선생님 오리지널 TTS 통신 로직 (text 파라미터 매칭)
+        // ----------------------------------------------------
+        async function generateOpenAITTS(key, textContent, voice) {
+            const btn = document.getElementById(`tts-btn-${key}`);
+            const container = document.getElementById(`audio-container-${key}`);
+            
+            try {
+                btn.disabled = true;
+                btn.textContent = "⏳ 음성 파일 생성 중...";
 
-        // ----------------------------------------------------
-        // [요소 5] TTS 기능 구현 (브라우저 내장 SpeechSynthesis)
-        // ----------------------------------------------------
-        function speak(text) {
-            window.speechSynthesis.cancel(); // 현재 읽고 있는 음성 중단
-            const speech = new SpeechSynthesisUtterance(text);
-            speech.lang = "ko-KR"; // 한국어 설정
-            speech.rate = 1.0;     // 속도
-            window.speechSynthesis.speak(speech);
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        type: 'tts',
+                        text: textContent, // requestData.text에 연결
+                        model: 'tts-1',
+                        voice: voice,
+                        speed: 1.0
+                    })
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                const audioUrl = base64ToAudioUrl(data.audioBase64, 'audio/mpeg');
+                container.innerHTML = `<audio controls src="${audioUrl}" autoplay></audio>`;
+                btn.textContent = "🔊 음성 생성 완료";
+            } catch (error) {
+                alert("TTS 생성 실패: " + error.message);
+                btn.textContent = "🔊 범위 음성 생성 (OpenAI TTS)";
+            } finally {
+                btn.disabled = false;
+            }
         }
 
+        function base64ToAudioUrl(base64, mimeType) {
+            const byteCharacters = atob(base64);
+            const byteArrays = [];
+            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                const slice = byteCharacters.slice(offset, offset + 512);
+                const byteNumbers = new Array(slice.length);
+                for (let i = 0; i < slice.length; i++) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+            }
+            return URL.createObjectURL(new Blob(byteArrays, { type: mimeType }));
+        }
 
         // ----------------------------------------------------
-        // [요소 4] 생성형 AI 연동 기능 (Serverless 대안 방식)
+        // [조건 4] 선생님 오리지널 Chat 통신 로직 (question 및 answer 매칭)
         // ----------------------------------------------------
-        function askAI(key, subject, range) {
+        async function generateGPTAnalysis(key, subject, range) {
             const aiBox = document.getElementById(`ai-box-${key}`);
-            aiBox.classList.remove('hidden');
-            aiBox.innerText = "🤖 AI가 시험 범위를 분석하여 족보를 만드는 중...";
+            const btn = document.getElementById(`ai-btn-${key}`);
             
-            setTimeout(() => {
-                const aiResponses = [
-                    `[🤖 AI 분석 결과 - ${subject}]\n\n📌 핵심 요약:\n- 이 범위에서는 핵심 개념 정의와 장단점 비교가 출제율 95%입니다.\n- 특히 '${range.substring(0, 10)}...' 관련 공식/이론을 반드시 암기하세요.\n\n📝 예상 적중 문제:\n1. 다음 중 본문에 제시된 핵심 특징으로 올바르지 않은 것은?\n2. 서술형 대비: 주요 개념의 동작 원리를 요약하여 서술하시오.`,
-                    `[🤖 AI 벼락치기 가이드 - ${subject}]\n\n📌 초강력 요약:\n- 시간이 없다면 '${range}' 부분의 교과서 굵은 글씨와 유인물 위주로 정독하세요.\n- 선생님이 강조한 예시 문항이 그대로 나올 확률이 높습니다.\n\n📝 단골 출제 문제:\n1. 다음 조건을 만족하는 알맞은 단어를 쓰시오.\n2. 주어진 보기 중 성격이 다른 하나를 고르시오.`
-                ];
+            aiBox.classList.remove('hidden');
+            aiBox.innerText = "🤖 GPT 인공지능이 벼락치기 요약본을 제작하는 중입니다...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        type: 'chat', // handleChat 분기 활성화
+                        question: `과목: ${subject}, 범위: ${range}. 이 시험 범위에 대한 핵심 내용 요약 요점 정리와 예상 문제 2개를 학생 말투로 친근하게 만들어줘.`, // requestData.question에 매칭
+                        model: 'gpt-4o-mini'
+                    })
+                });
+
+                const data = await response.json();
                 
-                const finalResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
-                aiBox.innerText = finalResponse;
-                
-                speak(`AI가 ${subject} 과목의 분석을 완료했습니다. 핵심 요약 내용을 확인하세요.`);
-                
-            }, 2000); 
+                // 선생님 코드가 결과값으로 리턴해 주는 data.answer를 화면에 출력
+                if (data.answer) {
+                    aiBox.innerText = data.answer;
+                } else if (data.error) {
+                    aiBox.innerText = `❌ 서버 오류 발생: ${data.error}`;
+                } else {
+                    aiBox.innerText = "⚠️ 데이터를 불러오지 못했습니다.";
+                }
+            } catch (error) {
+                aiBox.innerText = `❌ 통신 실패: ${error.toString()}\n(Apps Script 웹앱 주소를 확인하세요!)`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "✨ AI 요약 재요청";
+            }
         }
     </script>
 </body>
