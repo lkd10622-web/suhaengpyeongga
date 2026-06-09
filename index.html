@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수행평가 일정 관리</title>
+</head>
+<body>
+    <h1>수행평가·시험 일정 관리 테스트</h1>
+    <button id="testBtn">파이어베이스에 데이터 보내기</button>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <script>
+        // 1. 여기에 본인의 파이어베이스 설정 값을 넣어야 합니다!
+        // (Firebase 콘솔 -> 프로젝트 개요 옆 톱니바퀴 -> 프로젝트 설정 -> 앱 추가에서 웹(</>) 아이콘 클릭 후 발급받기)
+        const firebaseConfig = {
+            apiKey: "내용추가",
+            authDomain: "내용추가",
+            databaseURL: "https://yaho-9c14e-default-rtdb.firebaseio.com", // 주소는 스샷에 있던 것 넣어드렸어요!
+            projectId: "yaho-9c14e",
+            storageBucket: "내용추가",
+            messagingSenderId: "내용추가",
+            appId: "내용추가"
+        };
+
+        // Firebase 초기화
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // 버튼 클릭 시 데이터 전송 테스트
+        document.getElementById('testBtn').addEventListener('click', function() {
+            database.ref('test_schedules/').set({
+                title: "수학 수행평가",
+                dueDate: "2026-06-15",
+                content: "교과서 10쪽~20쪽 풀이 제출"
+            }).then(() => {
+                alert("파이어베이스로 데이터 전송 성공!");
+            }).catch((error) => {
+                alert("실패 ㅠㅠ 에러: " + error);
+            });
+        });
+    </script>
+</body>
+</html>
