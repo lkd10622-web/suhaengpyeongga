@@ -3,19 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>수행평가 일정 관리</title>
+    <title>수행평가·시험 일정 관리</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            max-width: 500px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #f5f6f7;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
-    <h1>수행평가·시험 일정 관리 테스트</h1>
-    <button id="testBtn">파이어베이스에 데이터 보내기</button>
+
+    <h1>📝 일정 등록하기</h1>
+    
+    <div class="form-group">
+        <label for="subject">과목명</label>
+        <input type="text" id="subject" placeholder="예: 수학, 정보, 세계사">
+    </div>
+
+    <div class="form-group">
+        <label for="examRange">시험 범위 / 내용</label>
+        <textarea id="examRange" rows="3" placeholder="예: 교과서 10p~35p, 프린트물 전체"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label for="examDate">시험/수행 날짜</label>
+        <input type="date" id="examDate">
+    </div>
+
+    <button id="submitBtn">파이어베이스에 일정 저장하기</button>
 
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <script>
-        // 1. 여기에 본인의 파이어베이스 설정 값을 넣어야 합니다!
-        // (Firebase 콘솔 -> 프로젝트 개요 옆 톱니바퀴 -> 프로젝트 설정 -> 앱 추가에서 웹(</>) 아이콘 클릭 후 발급받기)
-       const firebaseConfig = {
+        // ⚠️ 주의: 아까 발급받은 본인의 실제 firebaseConfig 값으로 꼭 다시 채워넣으세요!
+      const firebaseConfig = {
   apiKey: "AIzaSyAbZphaQMs38wC0zRDBXOT7oiRe2p8ABQs",
   authDomain: "yaho-9c14e.firebaseapp.com",
   databaseURL: "https://yaho-9c14e-default-rtdb.firebaseio.com",
@@ -25,20 +82,39 @@
   appId: "1:63667122547:web:1fb4d268d3e96b25d79506",
   measurementId: "G-SEWH1149ZZ"
 };
+
         // Firebase 초기화
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // 버튼 클릭 시 데이터 전송 테스트
-        document.getElementById('testBtn').addEventListener('click', function() {
-            database.ref('test_schedules/').set({
-                title: "수학 수행평가",
-                dueDate: "2026-06-15",
-                content: "교과서 10쪽~20쪽 풀이 제출"
+        // 저장 버튼 클릭 이벤트
+        document.getElementById('submitBtn').addEventListener('click', function() {
+            // 1. 입력창에 사용자가 적은 값 가져오기
+            const subject = document.getElementById('subject').value;
+            const examRange = document.getElementById('examRange').value;
+            const examDate = document.getElementById('examDate').value;
+
+            // 2. 빈칸이 있는지 확인하는 예외 처리
+            if (!subject || !examRange || !examDate) {
+                alert("모든 칸을 입력해 주세요!");
+                return;
+            }
+
+            // 3. 파이어베이스에 데이터 저장하기
+            // push()를 쓰면 데이터가 겹치지 않게 고유한 ID를 자동으로 만들어서 아래에 쌓아줍니다.
+            database.ref('schedules/').push({
+                subject: subject,
+                range: examRange,
+                date: examDate,
+                createdAt: new Date().toISOString() // 저장된 시간 기록
             }).then(() => {
-                alert("파이어베이스로 데이터 전송 성공!");
+                alert("성공적으로 일정이 등록되었습니다!");
+                // 등록 성공 후 입력창 비워주기
+                document.getElementById('subject').value = "";
+                document.getElementById('examRange').value = "";
+                document.getElementById('examDate').value = "";
             }).catch((error) => {
-                alert("실패 ㅠㅠ 에러: " + error);
+                alert("저장 실패 ㅠㅠ 에러 내용: " + error);
             });
         });
     </script>
