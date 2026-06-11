@@ -1,276 +1,489 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 스마트 학업 플래너</title>
-    <style>
-        body { font-family: 'Malgun Gothic', sans-serif; max-width: 600px; margin: 30px auto; padding: 20px; background-color: #f0f2f5; color: #333; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h1, h2 { text-align: center; color: #4A90E2; margin-bottom: 10px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, textarea, select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-        button { width: 100%; padding: 12px; background-color: #4A90E2; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
-        button:hover { background-color: #357ABD; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        .logout-btn { background-color: #e74c3c; }
-        .logout-btn:hover { background-color: #c0392b; }
-        .ai-btn { background-color: #9b59b6; }
-        .ai-btn:hover { background-color: #8e44ad; }
-        .tts-btn { background-color: #2ecc71; width: auto; padding: 6px 12px; font-size: 13px; margin: 5px 0; }
-        .schedule-item { background: #f9f9f9; padding: 15px; border-left: 5px solid #4A90E2; margin-bottom: 15px; border-radius: 4px; }
-        .ai-box { background: #f5efff; border: 1px solid #d6c2f0; padding: 12px; margin-top: 10px; border-radius: 6px; font-size: 14px; white-space: pre-wrap; line-height: 1.5; }
-        .hidden { display: none; }
-        .user-info { text-align: center; margin-bottom: 15px; font-weight: bold; }
-        audio { width: 100%; margin-top: 8px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 스마트 학업 플래너 & TTS</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #e3f2fd, #fce4ec);
+      font-family: Arial, sans-serif;
+      color: #333;
+    }
+
+    .container {
+      width: min(900px, 92%);
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.16);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      text-align: center;
+      font-size: 28px;
+      color: #1e88e5;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #777;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+
+    .info {
+      padding: 14px;
+      margin-bottom: 20px;
+      border-radius: 14px;
+      background: #e8f5e9;
+      color: #2e7d32;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .user-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f1f8ff;
+      padding: 12px 20px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      font-weight: bold;
+      border: 1px solid #d0e8ff;
+    }
+
+    .option-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    select, input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      font-size: 14px;
+      outline: none;
+      font-family: Arial, sans-serif;
+    }
+
+    select, input {
+      height: 44px;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    textarea:focus, select:focus, input:focus {
+      border-color: #42a5f5;
+      box-shadow: 0 0 0 3px rgba(66, 165, 245, 0.15);
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .label {
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    button, .download-link {
+      border: none;
+      border-radius: 12px;
+      padding: 0 18px;
+      height: 46px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: 0.15s;
+      font-weight: bold;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button:hover, .download-link:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+      transform: none;
+    }
+
+    .make-btn { background: #42a5f5; color: white; width: 100%; }
+    .clear-btn { background: #b0bec5; color: white; }
+    .logout-btn { background: #e57373; color: white; height: 36px; padding: 0 12px; font-size: 13px; }
+    .ai-btn { background: #9b59b6; color: white; width: auto; height: 38px; font-size: 13px; margin-top: 8px;}
+    .tts-btn { background: #2ecc71; color: white; width: auto; height: 38px; font-size: 13px; margin-top: 8px; margin-right: 5px;}
+    .download-link { background: #7e57c2; color: white; height: 36px; font-size: 13px; padding: 0 12px; margin-top: 8px; }
+
+    .hidden { display: none; }
+
+    .schedule-list-title {
+      margin-top: 30px;
+      border-bottom: 2px solid #42a5f5;
+      padding-bottom: 8px;
+      color: #1e88e5;
+    }
+
+    .schedule-item {
+      background: #f7f9fb;
+      padding: 20px;
+      border-left: 6px solid #42a5f5;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .schedule-item h3 { margin: 0 0 10px; color: #333; }
+    .schedule-item p { margin: 5px 0; font-size: 14px; color: #666; }
+
+    .ai-box {
+      background: #f5efff;
+      border: 1px solid #d6c2f0;
+      padding: 14px;
+      margin-top: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      color: #4a148c;
+    }
+
+    audio {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .help {
+      margin-top: 20px;
+      font-size: 13px;
+      color: #777;
+      line-height: 1.6;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <h1>🧠 AI 스마트 학업 플래너 & TTS</h1>
+    <div class="subtitle">계정별 일정을 저장하고 GPT 요약 및 AI 목소리 변환을 지원합니다</div>
 
-    <h1>🧠 AI 스마트 학업 플래너</h1>
-    <p style="text-align:center; color:#666; margin-top:-5px;">수행평가 완벽 대비를 위한 나만의 AI 비서</p>
-
-    <div id="loginSection" class="card">
-        <h2>로그인 후 시작하기</h2>
-        <p style="text-align: center; color: #777;">내 개인 일정과 AI 분석 데이터를 안전하게 관리합니다.</p>
-        <button id="loginBtn">🌐 Google 계정으로 로그인</button>
+    <div class="info">
+      현재 구조: GitHub Pages 화면 → Firebase 데이터베이스(저장) → 구글 Apps Script 서버 → OpenAI API 활용<br />
+      API Key는 코드에 노출되지 않으며 안전하게 처리됩니다.
     </div>
 
-    <div id="appSection" class="card hidden">
-        <div class="user-info">
-            <span id="userName">사용자</span>님 환영합니다!
-            <button id="logoutBtn" class="logout-btn" style="width:auto; padding:5px 10px; font-size:12px; display:inline-block; margin-left:10px;">로그아웃</button>
-        </div>
-
-        <div class="form-group">
-            <label>과목명</label>
-            <input type="text" id="subject" placeholder="예: 정보, 수학, 세계사">
-        </div>
-        <div class="form-group">
-            <label>시험 범위 / 수행평가 내용</label>
-            <textarea id="examRange" rows="3" placeholder="예: 교과서 10p~35p, 파이썬 조건문 구조와 예제"></textarea>
-        </div>
-        <div class="form-group">
-            <label>마감 / 시험 날짜</label>
-            <input type="date" id="examDate">
-        </div>
-        <div class="form-group">
-            <label>목소리 타입 선택 (OpenAI TTS)</label>
-            <select id="voiceSelect">
-                <option value="alloy">alloy (기본)</option>
-                <option value="echo">echo (부드러운 남성)</option>
-                <option value="nova">nova (차분한 여성)</option>
-                <option value="shimmer">shimmer (밝은 여성)</option>
-            </select>
-        </div>
-        <button id="submitBtn">📅 플래너에 일정 등록</button>
-
-        <hr style="margin: 25px 0; border: 0; border-top: 1px solid #eee;">
-
-        <h2>📋 내 일정 및 AI 학습 지원 목록</h2>
-        <div id="scheduleList"></div>
+    <div id="loginSection" style="text-align: center; padding: 40px 0;">
+      <h2 style="margin-bottom: 20px;">서비스를 이용하려면 로그인이 필요합니다</h2>
+      <button class="make-btn" id="loginBtn" style="max-width: 300px;">🌐 Google 계정으로 로그인</button>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <div id="appSection" class="hidden">
+      <div class="user-info">
+        <div>👋 <span id="userName">사용자</span>님 반갑습니다!</div>
+        <button class="logout-btn" id="logoutBtn">로그아웃</button>
+      </div>
 
-    <script>
-        // Firebase 설정값 정보
-        const firebaseConfig = {
-            apiKey: "AIzaSyAbZphaQMs38wC0zRDBXOT7oiRe2p8ABQs",
-            authDomain: "yaho-9c14e.firebaseapp.com",
-            databaseURL: "https://yaho-9c14e-default-rtdb.firebaseio.com",
-            projectId: "yaho-9c14e",
-            storageBucket: "yaho-9c14e.firebasestorage.app",
-            messagingSenderId: "63667122547",
-            appId: "1:63667122547:web:1fb4d268d3e96b25d79506",
-            measurementId: "G-SEWH1149ZZ"
-        };
+      <div class="form-group">
+        <div class="label">과목명</div>
+        <input type="text" id="subjectInput" placeholder="예: 정보, 수학, 세계사" />
+      </div>
 
-        // 방금 보내주신 새로운 구글 Apps Script 웹앱 URL 적용 완료!
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyKETxRpA3UY5QmdKQFhOC2epvY8_jWKiwxJt2YP4IaN2HhQRmWHRgeLJ2EArzKtn4KA/exec';
+      <div class="form-group">
+        <div class="label">시험 범위 / 수행평가 내용 (AI 변환 대상)</div>
+        <textarea id="textInput" placeholder="인공지능이 요약하고 음성으로 변환할 내용을 적어주세요."></textarea>
+      </div>
 
-        // Firebase 초기화
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const auth = firebase.auth();
-        let currentUser = null;
+      <div class="label">인공지능 세부 설정</div>
+      <div class="option-box">
+        <select id="modelSelect">
+          <option value="tts-1">tts-1 빠른 생성</option>
+          <option value="tts-1-hd">tts-1-hd 고품질</option>
+        </select>
 
-        // ----------------------------------------------------
-        // Google 인증 로그인 세션 제어
-        // ----------------------------------------------------
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                currentUser = user;
-                document.getElementById('loginSection').classList.add('hidden');
-                document.getElementById('appSection').classList.remove('hidden');
-                document.getElementById('userName').innerText = user.displayName;
-                loadSchedules(user.uid); 
-            } else {
-                currentUser = null;
-                document.getElementById('loginSection').classList.remove('hidden');
-                document.getElementById('appSection').classList.add('hidden');
-            }
-        });
+        <select id="voiceSelect">
+          <option value="alloy">alloy</option>
+          <option value="echo">echo</option>
+          <option value="fable">fable</option>
+          <option value="onyx">onyx</option>
+          <option value="nova">nova</option>
+          <option value="shimmer">shimmer</option>
+        </select>
 
-        document.getElementById('loginBtn').addEventListener('click', () => {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(err => alert("로그인 실패: " + err.message));
-        });
+        <input id="speedInput" type="number" min="0.25" max="4.0" step="0.05" value="1.0" placeholder="속도" />
+      </div>
 
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            auth.signOut();
-        });
+      <div class="form-group">
+        <div class="label">마감 / 시험 날짜</div>
+        <input type="date" id="examDate" />
+      </div>
 
-        // ----------------------------------------------------
-        // Firebase Realtime Database 일정 추가(C)
-        // ----------------------------------------------------
-        document.getElementById('submitBtn').addEventListener('click', () => {
-            const subject = document.getElementById('subject').value;
-            const range = document.getElementById('examRange').value;
-            const date = document.getElementById('examDate').value;
+      <div class="button-row">
+        <button class="clear-btn" id="clearBtn">초기화</button>
+        <button class="make-btn" id="submitBtn" style="width: auto;">📅 플래너에 일정 등록</button>
+      </div>
 
-            if (!subject || !range || !date) { alert("모든 칸을 입력해 주세요!"); return; }
+      <h2 class="schedule-list-title">📋 나의 수행평가 & AI 학습 지원 목록</h2>
+      <div id="scheduleList"></div>
+    </div>
 
-            database.ref('user_schedules/' + currentUser.uid).push({
-                subject: subject,
-                range: range,
-                date: date
-            }).then(() => {
-                alert("일정이 등록되었습니다.");
-                document.getElementById('subject').value = "";
-                document.getElementById('examRange').value = "";
-                document.getElementById('examDate').value = "";
-            });
-        });
+    <div class="help">
+      학업 플래너에 등록된 일정별로 맞춤형 GPT 족보 제작과 오디오 가이드 음성을 무제한으로 생성할 수 있습니다.
+    </div>
+  </div>
 
-        // ----------------------------------------------------
-        // Firebase에서 데이터 로그인한 유저별로 불러오기(R)
-        // ----------------------------------------------------
-        function loadSchedules(uid) {
-            database.ref('user_schedules/' + uid).on('value', (snapshot) => {
-                const listDiv = document.getElementById('scheduleList');
-                listDiv.innerHTML = ""; 
-                
-                if(!snapshot.exists()) {
-                    listDiv.innerHTML = "<p style='text-align:center; color:#999;'>등록된 일정이 없습니다.</p>";
-                    return;
-                }
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
-                snapshot.forEach((childSnapshot) => {
-                    const key = childSnapshot.key;
-                    const item = childSnapshot.val();
-                    const selectedVoice = document.getElementById('voiceSelect').value;
+  <script>
+    // Firebase 연결 설정 데이터
+    const firebaseConfig = {
+      apiKey: "AIzaSyAbZphaQMs38wC0zRDBXOT7oiRe2p8ABQs",
+      authDomain: "yaho-9c14e.firebaseapp.com",
+      databaseURL: "https://yaho-9c14e-default-rtdb.firebaseio.com",
+      projectId: "yaho-9c14e",
+      storageBucket: "yaho-9c14e.firebasestorage.app",
+      messagingSenderId: "63667122547",
+      appId: "1:63667122547:web:1fb4d268d3e96b25d79506",
+      measurementId: "G-SEWH1149ZZ"
+    };
 
-                    const itemHtml = `
-                        <div class="schedule-item">
-                            <h3>[${item.subject}] 시험/수행평가</h3>
-                            <p><strong>📅 시험 날짜:</strong> ${item.date}</p>
-                            <p><strong>📖 시험 범위:</strong> ${item.range}</p>
-                            
-                            <button class="tts-btn" id="tts-btn-${key}" onclick="generateOpenAITTS('${key}', '${item.subject} 시험 범위는 ${item.range.replace(/\n/g, " ")} 입니다.', '${selectedVoice}')">🔊 범위 음성 생성 (OpenAI TTS)</button>
-                            <div id="audio-container-${key}"></div>
-                            
-                            <button class="ai-btn" id="ai-btn-${key}" onclick="generateGPTAnalysis('${key}', '${item.subject}', '${item.range}')">✨ OpenAI GPT 족보 요약 요청</button>
-                            <div id="ai-box-${key}" class="ai-box hidden"></div>
-                        </div>
-                    `;
-                    listDiv.innerHTML += itemHtml;
-                });
-            });
+    // 🌟 새로운 앱 스크립트 배포 주소를 여기에 확실히 적용했습니다!
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7x3hNF5EsZahaAjThF6u2Kuhv_68dT-yifQ2RL2MT5ppSy7WC1xghvWGCwB3DSqzlxA/exec';
+
+    // Firebase 시스템 부팅
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const auth = firebase.auth();
+    let currentUser = null;
+
+    // ----------------------------------------------------
+    // 구글 회원인증 로그인 프로세스 제어
+    // ----------------------------------------------------
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        currentUser = user;
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('appSection').classList.remove('hidden');
+        document.getElementById('userName').innerText = user.displayName;
+        loadSchedules(user.uid); 
+      } else {
+        currentUser = null;
+        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('appSection').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(err => alert("로그인 인증 실패: " + err.message));
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      auth.signOut();
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      document.getElementById('subjectInput').value = '';
+      document.getElementById('textInput').value = '';
+      document.getElementById('examDate').value = '';
+    });
+
+    // ----------------------------------------------------
+    // Firebase 데이터베이스에 새 일정 등록
+    // ----------------------------------------------------
+    document.getElementById('submitBtn').addEventListener('click', () => {
+      const subject = document.getElementById('subjectInput').value.trim();
+      const range = document.getElementById('textInput').value.trim();
+      const date = document.getElementById('examDate').value;
+      
+      const model = document.getElementById('modelSelect').value;
+      const voice = document.getElementById('voiceSelect').value;
+      const speed = Number(document.getElementById('speedInput').value || 1.0);
+
+      if (!subject || !range || !date) { 
+        alert("모든 칸을 빼놓지 않고 채워주셔야 플래너 생성이 가능합니다!"); 
+        return; 
+      }
+
+      database.ref('user_schedules/' + currentUser.uid).push({
+        subject: subject,
+        range: range,
+        date: date,
+        model: model,
+        voice: voice,
+        speed: speed
+      }).then(() => {
+        alert("성공적으로 일정이 플래너에 기록되었습니다.");
+        document.getElementById('subjectInput').value = "";
+        document.getElementById('textInput').value = "";
+        document.getElementById('examDate').value = "";
+      });
+    });
+
+    // ----------------------------------------------------
+    // 데이터베이스 실시간 모니터링 출력 및 동적 카드 생성
+    // ----------------------------------------------------
+    function loadSchedules(uid) {
+      database.ref('user_schedules/' + uid).on('value', (snapshot) => {
+        const listDiv = document.getElementById('scheduleList');
+        listDiv.innerHTML = ""; 
+        
+        if(!snapshot.exists()) {
+          listDiv.innerHTML = "<p style='text-align:center; color:#999; padding:20px;'>아직 등록된 수행평가 마감 일정이 없습니다.</p>";
+          return;
         }
 
-        // ----------------------------------------------------
-        // [조건 5] 선생님 오리지널 TTS 통신 로직 (text 파라미터 매칭)
-        // ----------------------------------------------------
-        async function generateOpenAITTS(key, textContent, voice) {
-            const btn = document.getElementById(`tts-btn-${key}`);
-            const container = document.getElementById(`audio-container-${key}`);
-            
-            try {
-                btn.disabled = true;
-                btn.textContent = "⏳ 음성 파일 생성 중...";
+        snapshot.forEach((childSnapshot) => {
+          const key = childSnapshot.key;
+          const item = childSnapshot.val();
 
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        type: 'tts',
-                        text: textContent, // requestData.text에 연결
-                        model: 'tts-1',
-                        voice: voice,
-                        speed: 1.0
-                    })
-                });
+          const itemModel = item.model || "tts-1";
+          const itemVoice = item.voice || "alloy";
+          const itemSpeed = item.speed || 1.0;
 
-                const data = await response.json();
-                if (data.error) throw new Error(data.error);
+          const itemHtml = `
+            <div class="schedule-item">
+              <h3>📘 [${item.subject}] 수행평가 및 시험 일정</h3>
+              <p><strong>📅 마감 / 시험일:</strong> ${item.date}</p>
+              <p><strong>📖 준비 범위 요약:</strong> ${item.range}</p>
+              
+              <div style="margin-top:12px;">
+                <button class="tts-btn" id="tts-btn-${key}" onclick="generateOpenAITTS('${key}', '${item.range.replace(/\n/g, " ")}', '${itemModel}', '${itemVoice}', ${itemSpeed})">🔊 음성 가이드 만들기</button>
+                <button class="ai-btn" id="ai-btn-${key}" onclick="generateGPTAnalysis('${key}', '${item.subject}', '${item.range}')">✨ GPT 핵심 족보 요약</button>
+                <a id="download-${key}" class="download-link hidden" href="#">mp3 다운로드</a>
+              </div>
+              
+              <div id="audio-container-${key}"></div>
+              <div id="ai-box-${key}" class="ai-box hidden"></div>
+            </div>
+          `;
+          listDiv.innerHTML += itemHtml;
+        });
+      });
+    }
 
-                const audioUrl = base64ToAudioUrl(data.audioBase64, 'audio/mpeg');
-                container.innerHTML = `<audio controls src="${audioUrl}" autoplay></audio>`;
-                btn.textContent = "🔊 음성 생성 완료";
-            } catch (error) {
-                alert("TTS 생성 실패: " + error.message);
-                btn.textContent = "🔊 범위 음성 생성 (OpenAI TTS)";
-            } finally {
-                btn.disabled = false;
-            }
+    // ----------------------------------------------------
+    // OpenAI 가이드 오디오 생성 장치 (TTS)
+    // ----------------------------------------------------
+    async function generateOpenAITTS(key, textContent, model, voice, speed) {
+      const btn = document.getElementById(`tts-btn-${key}`);
+      const container = document.getElementById(`audio-container-${key}`);
+      const dlLink = document.getElementById(`download-${key}`);
+      
+      try {
+        btn.disabled = true;
+        btn.textContent = "⏳ 오디오 생성 중...";
+
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'tts',
+            text: textContent,
+            model: model,
+            voice: voice,
+            speed: speed
+          })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        const audioUrl = base64ToAudioUrl(data.audioBase64, 'audio/mpeg');
+        container.innerHTML = `<audio controls src="${audioUrl}" autoplay></audio>`;
+        
+        dlLink.href = audioUrl;
+        dlLink.download = `tts-${key}.mp3`;
+        dlLink.classList.remove('hidden');
+
+        btn.textContent = "🔊 음성 가이드 재생 완료";
+      } catch (error) {
+        alert("오디오 음성 변환에 실패했습니다: " + error.message);
+        btn.textContent = "🔊 음성 가이드 만들기";
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function base64ToAudioUrl(base64, mimeType) {
+      const byteCharacters = atob(base64);
+      const byteArrays = [];
+      for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+        const slice = byteCharacters.slice(offset, offset + 512);
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) {
+          byteNumbers[i] = slice.charCodeAt(i);
         }
+        const byteArray = new Uint8Array(byteNumbers);
+        byteArrays.push(byteArray);
+      }
+      return URL.createObjectURL(new Blob(byteArrays, { type: mimeType }));
+    }
 
-        function base64ToAudioUrl(base64, mimeType) {
-            const byteCharacters = atob(base64);
-            const byteArrays = [];
-            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-                const slice = byteCharacters.slice(offset, offset + 512);
-                const byteNumbers = new Array(slice.length);
-                for (let i = 0; i < slice.length; i++) {
-                    byteNumbers[i] = slice.charCodeAt(i);
-                }
-                const byteArray = new Uint8Array(byteNumbers);
-                byteArrays.push(byteArray);
-            }
-            return URL.createObjectURL(new Blob(byteArrays, { type: mimeType }));
+    // ----------------------------------------------------
+    // OpenAI 인공지능 요약 정리 장치 (ChatGPT)
+    // ----------------------------------------------------
+    async function generateGPTAnalysis(key, subject, range) {
+      const aiBox = document.getElementById(`ai-box-${key}`);
+      const btn = document.getElementById(`ai-btn-${key}`);
+      
+      aiBox.classList.remove('hidden');
+      aiBox.innerText = "🤖 GPT가 시험 내용 분석 및 핵심 벼락치기 요약본을 추출 중입니다...";
+      btn.disabled = true;
+
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'chat',
+            question: `과목명: [${subject}], 시험 및 공부 범위: [${range}]. 이 내용에 관해 고등학생이 시험 공부하기 편하도록 핵심 요약 노트 정리 3줄과 시험에 무조건 나올 법한 핵심 예상문제 2개를 친절한 말투로 뽑아줘.`,
+            model: 'gpt-4o-mini'
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.answer) {
+          aiBox.innerText = data.answer;
+        } else if (data.error) {
+          aiBox.innerText = `❌ 인공지능 분석 오류: ${data.error}`;
+        } else {
+          aiBox.innerText = "⚠️ 서버 응답이 올바르지 않습니다.";
         }
-
-        // ----------------------------------------------------
-        // [조건 4] 선생님 오리지널 Chat 통신 로직 (question 및 answer 매칭)
-        // ----------------------------------------------------
-        async function generateGPTAnalysis(key, subject, range) {
-            const aiBox = document.getElementById(`ai-box-${key}`);
-            const btn = document.getElementById(`ai-btn-${key}`);
-            
-            aiBox.classList.remove('hidden');
-            aiBox.innerText = "🤖 GPT 인공지능이 벼락치기 요약본을 제작하는 중입니다...";
-            btn.disabled = true;
-
-            try {
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        type: 'chat', // handleChat 분기 활성화
-                        question: `과목: ${subject}, 범위: ${range}. 이 시험 범위에 대한 핵심 내용 요약 요점 정리와 예상 문제 2개를 학생 말투로 친근하게 만들어줘.`, // requestData.question에 매칭
-                        model: 'gpt-4o-mini'
-                    })
-                });
-
-                const data = await response.json();
-                
-                // 선생님 코드가 결과값으로 리턴해 주는 data.answer를 화면에 출력
-                if (data.answer) {
-                    aiBox.innerText = data.answer;
-                } else if (data.error) {
-                    aiBox.innerText = `❌ 서버 오류 발생: ${data.error}`;
-                } else {
-                    aiBox.innerText = "⚠️ 데이터를 불러오지 못했습니다.";
-                }
-            } catch (error) {
-                aiBox.innerText = `❌ 통신 실패: ${error.toString()}\n(Apps Script 웹앱 주소를 확인하세요!)`;
-            } finally {
-                btn.disabled = false;
-                btn.textContent = "✨ AI 요약 재요청";
-            }
-        }
-    </script>
+      } catch (error) {
+        aiBox.innerText = `❌ 통신망 실패: ${error.toString()}\n구글 앱 스크립트 웹앱 주소 및 배포 상태를 다시 한번 검토해 주세요.`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "✨ 족보 요약 다시 요청";
+      }
+    }
+  </script>
 </body>
 </html>
