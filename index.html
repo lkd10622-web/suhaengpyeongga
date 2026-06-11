@@ -139,8 +139,7 @@
     .clear-btn { background: #b0bec5; color: white; }
     .logout-btn { background: #e57373; color: white; height: 36px; padding: 0 12px; font-size: 13px; }
     .ai-btn { background: #9b59b6; color: white; width: auto; height: 38px; font-size: 13px; margin-top: 8px;}
-    .tts-btn { background: #2ecc71; color: white; width: auto; height: 38px; font-size: 13px; margin-top: 8px; margin-right: 5px;}
-    .download-link { background: #7e57c2; color: white; height: 36px; font-size: 13px; padding: 0 12px; margin-top: 8px; }
+    .download-link { background: #7e57c2; color: white; height: 38px; font-size: 13px; padding: 0 12px; margin-top: 8px; }
 
     .hidden { display: none; }
 
@@ -166,7 +165,7 @@
     .ai-box {
       background: #f5efff;
       border: 1px solid #d6c2f0;
-      padding: 14px;
+      padding: 16px;
       margin-top: 12px;
       border-radius: 8px;
       font-size: 14px;
@@ -177,7 +176,7 @@
 
     audio {
       width: 100%;
-      margin-top: 10px;
+      margin-top: 12px;
     }
 
     .help {
@@ -192,11 +191,10 @@
 <body>
   <div class="container">
     <h1>🧠 AI 스마트 학업 플래너 & TTS</h1>
-    <div class="subtitle">계정별 일정을 저장하고 GPT 요약 및 AI 목소리 변환을 지원합니다</div>
+    <div class="subtitle">계정별 일정을 저장하고 풍부한 GPT 요약 및 AI 자동 음성 가이드를 지원합니다</div>
 
     <div class="info">
-      현재 구조: GitHub Pages 화면 → Firebase 데이터베이스(저장) → 구글 Apps Script 서버 → OpenAI API 활용<br />
-      API Key는 코드에 노출되지 않으며 안전하게 처리됩니다.
+      현재 구조: 각각의 사용자가 로그인하면 본인만의 수행평가 목록을 독립적으로 관리하고 이용할 수 있습니다.
     </div>
 
     <div id="loginSection" style="text-align: center; padding: 40px 0;">
@@ -216,11 +214,11 @@
       </div>
 
       <div class="form-group">
-        <div class="label">시험 범위 / 수행평가 내용 (AI 변환 대상)</div>
-        <textarea id="textInput" placeholder="인공지능이 요약하고 음성으로 변환할 내용을 적어주세요."></textarea>
+        <div class="label">시험 범위 / 수행평가 내용 (AI 요약 대상)</div>
+        <textarea id="textInput" placeholder="인공지능이 분석하여 상세 족보를 만들고 읽어줄 내용을 적어주세요."></textarea>
       </div>
 
-      <div class="label">인공지능 세부 설정</div>
+      <div class="label">인공지능 목소리 세부 설정</div>
       <div class="option-box">
         <select id="modelSelect">
           <option value="tts-1">tts-1 빠른 생성</option>
@@ -228,11 +226,11 @@
         </select>
 
         <select id="voiceSelect">
-          <option value="alloy">alloy</option>
-          <option value="echo">echo</option>
+          <option value="alloy">alloy (기본)</option>
+          <option value="echo">echo (부드러운 남성)</option>
           <option value="fable">fable</option>
-          <option value="onyx">onyx</option>
-          <option value="nova">nova</option>
+          <option value="onyx">onyx (묵직한 남성)</option>
+          <option value="nova">nova (선명한 여성)</option>
           <option value="shimmer">shimmer</option>
         </select>
 
@@ -254,7 +252,7 @@
     </div>
 
     <div class="help">
-      학업 플래너에 등록된 일정별로 맞춤형 GPT 족보 제작과 오디오 가이드 음성을 무제한으로 생성할 수 있습니다.
+      본 플래너는 개인 맞춤형 데이터베이스 연동형 웹서비스입니다.
     </div>
   </div>
 
@@ -263,7 +261,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
   <script>
-    // Firebase 연결 설정 데이터
     const firebaseConfig = {
       apiKey: "AIzaSyAbZphaQMs38wC0zRDBXOT7oiRe2p8ABQs",
       authDomain: "yaho-9c14e.firebaseapp.com",
@@ -275,18 +272,13 @@
       measurementId: "G-SEWH1149ZZ"
     };
 
-    // 🌟 전달해주신 최종 주소로 연동 통로를 확실하게 바꿨습니다!
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzJxbPLRSj0YFf7SbUjpFL9s4V3im-F6u8lyU77PDNMLuI1K9a1RXOFPbeeCvIOm_vQ7A/exec';
 
-    // Firebase 시스템 부팅
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     const auth = firebase.auth();
     let currentUser = null;
 
-    // ----------------------------------------------------
-    // 구글 회원인증 로그인 프로세스 제어
-    // ----------------------------------------------------
     auth.onAuthStateChanged((user) => {
       if (user) {
         currentUser = user;
@@ -316,9 +308,6 @@
       document.getElementById('examDate').value = '';
     });
 
-    // ----------------------------------------------------
-    // Firebase 데이터베이스에 새 일정 등록
-    // ----------------------------------------------------
     document.getElementById('submitBtn').addEventListener('click', () => {
       const subject = document.getElementById('subjectInput').value.trim();
       const range = document.getElementById('textInput').value.trim();
@@ -329,7 +318,7 @@
       const speed = Number(document.getElementById('speedInput').value || 1.0);
 
       if (!subject || !range || !date) { 
-        alert("모든 칸을 빼놓지 않고 채워주셔야 플래너 생성이 가능합니다!"); 
+        alert("모든 칸을 입력해 주세요!"); 
         return; 
       }
 
@@ -348,9 +337,6 @@
       });
     });
 
-    // ----------------------------------------------------
-    // 데이터베이스 실시간 모니터링 출력 및 동적 카드 생성
-    // ----------------------------------------------------
     function loadSchedules(uid) {
       database.ref('user_schedules/' + uid).on('value', (snapshot) => {
         const listDiv = document.getElementById('scheduleList');
@@ -373,16 +359,15 @@
             <div class="schedule-item">
               <h3>📘 [${item.subject}] 수행평가 및 시험 일정</h3>
               <p><strong>📅 마감 / 시험일:</strong> ${item.date}</p>
-              <p><strong>📖 준비 범위 요약:</strong> ${item.range}</p>
+              <p><strong>📖 준비 범위 원본:</strong> ${item.range}</p>
               
               <div style="margin-top:12px;">
-                <button class="tts-btn" id="tts-btn-${key}" onclick="generateOpenAITTS('${key}', '${item.range.replace(/\n/g, " ")}', '${itemModel}', '${itemVoice}', ${itemSpeed})">🔊 음성 가이드 만들기</button>
-                <button class="ai-btn" id="ai-btn-${key}" onclick="generateGPTAnalysis('${key}', '${item.subject}', '${item.range}')">✨ GPT 핵심 족보 요약</button>
+                <button class="ai-btn" id="combined-btn-${key}" onclick="startAIWorkflow('${key}', '${item.subject}', '${item.range.replace(/\n/g, " ")}', '${itemModel}', '${itemVoice}', ${itemSpeed})">✨ AI 핵심 요약 및 음성 듣기</button>
                 <a id="download-${key}" class="download-link hidden" href="#">mp3 다운로드</a>
               </div>
               
-              <div id="audio-container-${key}"></div>
               <div id="ai-box-${key}" class="ai-box hidden"></div>
+              <div id="audio-container-${key}"></div>
             </div>
           `;
           listDiv.innerHTML += itemHtml;
@@ -391,42 +376,82 @@
     }
 
     // ----------------------------------------------------
-    // OpenAI 가이드 오디오 생성 장치 (TTS)
+    // 통합 프로세스: 1단계 요약 생성 ➡️ 2단계 TTS 자동 연동
     // ----------------------------------------------------
-    async function generateOpenAITTS(key, textContent, model, voice, speed) {
-      const btn = document.getElementById(`tts-btn-${key}`);
-      const container = document.getElementById(`audio-container-${key}`);
+    async function startAIWorkflow(key, subject, range, model, voice, speed) {
+      const btn = document.getElementById(`combined-btn-${key}`);
+      const aiBox = document.getElementById(`ai-box-${key}`);
+      const audioContainer = document.getElementById(`audio-container-${key}`);
       const dlLink = document.getElementById(`download-${key}`);
-      
-      try {
-        btn.disabled = true;
-        btn.textContent = "⏳ 오디오 생성 중...";
 
-        const response = await fetch(APPS_SCRIPT_URL, {
+      btn.disabled = true;
+      btn.textContent = "⏳ 1단계: GPT가 고품질 요약 작성 중...";
+      aiBox.classList.remove('hidden');
+      aiBox.innerText = "🤖 내용을 철저하게 분석하고 요약 노트를 컴파일하는 중입니다. 잠시만 기다려 주세요...";
+      audioContainer.innerHTML = "";
+      dlLink.classList.add('hidden');
+
+      let summarizedText = "";
+
+      // [1단계] 더욱 풍부해진 GPT 프롬프트 요약 요청
+      try {
+        const chatResponse = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'chat',
+            question: `과목명: [${subject}]\n공부 범위 및 원본 데이터: [${range}]\n\n위 내용에 관해 고등학생이 완벽하게 시험과 수행평가를 대비할 수 있도록 아래 항목에 맞춰 아주 상세하고 깊이 있게 요약해줘.\n1. 대주제 및 핵심 취지 설명\n2. 반드시 암기해야 할 핵심 개념 요약 정리 3가지 (각 항목별로 구체적인 원리나 내용을 2~3줄씩 자세히 서술할 것)\n3. 시험 서술형이나 수행평가에 무조건 나올 법한 핵심 키워드 단어 리스트\n4. 변별력 높은 고난도 예상 기출문제 2개와 각각의 정답 및 명쾌한 해설`,
+            model: 'gpt-4o-mini'
+          })
+        });
+
+        const chatData = await chatResponse.json();
+        
+        if (chatData.answer) {
+          summarizedText = chatData.answer;
+          aiBox.innerText = summarizedText;
+        } else {
+          throw new Error(chatData.error || "요약 데이터를 받아오지 못했습니다.");
+        }
+
+      } catch (error) {
+        aiBox.innerText = `❌ 요약 생성 실패: ${error.message}`;
+        btn.disabled = false;
+        btn.textContent = "✨ AI 핵심 요약 및 음성 듣기";
+        return;
+      }
+
+      // [2단계] 생성된 요약본을 토대로 즉시 TTS 음성 생성
+      try {
+        btn.textContent = "⏳ 2단계: 요약본을 AI 목소리로 변환 중...";
+        
+        // 오디오가 끊기지 않게 특수문자나 과도한 기호를 정제하여 전달
+        const cleanTextForTTS = summarizedText.replace(/[*#`\-]/g, ' ').trim();
+
+        const ttsResponse = await fetch(APPS_SCRIPT_URL, {
           method: 'POST',
           body: JSON.stringify({
             type: 'tts',
-            text: textContent,
+            text: cleanTextForTTS,
             model: model,
             voice: voice,
             speed: speed
           })
         });
 
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
+        const ttsData = await ttsResponse.json();
+        if (ttsData.error) throw new Error(ttsData.error);
 
-        const audioUrl = base64ToAudioUrl(data.audioBase64, 'audio/mpeg');
-        container.innerHTML = `<audio controls src="${audioUrl}" autoplay></audio>`;
+        const audioUrl = base64ToAudioUrl(ttsData.audioBase64, 'audio/mpeg');
+        audioContainer.innerHTML = `<audio controls src="${audioUrl}" autoplay></audio>`;
         
         dlLink.href = audioUrl;
-        dlLink.download = `tts-${key}.mp3`;
+        dlLink.download = `${subject}-요약가이드.mp3`;
         dlLink.classList.remove('hidden');
 
-        btn.textContent = "🔊 음성 가이드 재생 완료";
+        btn.textContent = "✅ 생성 완료 (다시 요청 가능)";
       } catch (error) {
-        alert("오디오 음성 변환에 실패했습니다: " + error.message);
-        btn.textContent = "🔊 음성 가이드 만들기";
+        alert("오디오 음성 변환 단계에서 오류가 발생했습니다: " + error.message);
+        btn.textContent = "✨ AI 핵심 요약 및 음성 듣기";
       } finally {
         btn.disabled = false;
       }
@@ -445,44 +470,6 @@
         byteArrays.push(byteArray);
       }
       return URL.createObjectURL(new Blob(byteArrays, { type: mimeType }));
-    }
-
-    // ----------------------------------------------------
-    // OpenAI 인공지능 요약 정리 장치 (ChatGPT)
-    // ----------------------------------------------------
-    async function generateGPTAnalysis(key, subject, range) {
-      const aiBox = document.getElementById(`ai-box-${key}`);
-      const btn = document.getElementById(`ai-btn-${key}`);
-      
-      aiBox.classList.remove('hidden');
-      aiBox.innerText = "🤖 GPT가 시험 내용 분석 및 핵심 벼락치기 요약본을 추출 중입니다...";
-      btn.disabled = true;
-
-      try {
-        const response = await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          body: JSON.stringify({
-            type: 'chat',
-            question: `과목명: [${subject}], 시험 및 공부 범위: [${range}]. 이 내용에 관해 고등학생이 시험 공부하기 편하도록 핵심 요약 노트 정리 3줄과 시험에 무조건 나올 법한 핵심 예상문제 2개를 친절한 말투로 뽑아줘.`,
-            model: 'gpt-4o-mini'
-          })
-        });
-
-        const data = await response.json();
-        
-        if (data.answer) {
-          aiBox.innerText = data.answer;
-        } else if (data.error) {
-          aiBox.innerText = `❌ 인공지능 분석 오류: ${data.error}`;
-        } else {
-          aiBox.innerText = "⚠️ 서버 응답이 올바르지 않습니다.";
-        }
-      } catch (error) {
-        aiBox.innerText = `❌ 통신망 실패: ${error.toString()}\n구글 앱 스크립트 웹앱 주소 및 배포 상태를 다시 한번 검토해 주세요.`;
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "✨ 족보 요약 다시 요청";
-      }
     }
   </script>
 </body>
