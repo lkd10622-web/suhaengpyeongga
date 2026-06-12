@@ -165,7 +165,7 @@
 <body>
   <div class="container">
     <h1>🧠 AI 스마트 학업 플래너 & TTS</h1>
-    <div class="subtitle">계정별 일정을 저장하고 풍부한 GPT 요약 후 선택적 AI 음성 가이드를 지원합니다</div>
+    <div class="subtitle">계정별 일정을 저장하고 맞춤형 AI 핵심 개념 요약 및 오디오 인코딩 가이드를 지원합니다</div>
 
     <div class="info">
       안내: 친구들과 공유하여 사용 시 각자 구글 계정으로 로그인하면 본인만의 데이터를 안전하게 관리할 수 있습니다.
@@ -189,7 +189,7 @@
 
       <div class="form-group">
         <div class="label">시험 범위 / 수행평가 내용 (AI 요약 대상)</div>
-        <textarea id="textInput" placeholder="인공지능이 분석하여 상세 족보를 만들어줄 내용을 적어주세요."></textarea>
+        <textarea id="textInput" placeholder="인공지능이 핵심 개념을 요약하고 노트를 만들어줄 본문 내용을 적어주세요."></textarea>
       </div>
 
       <div class="label">인공지능 목소리 설정 (요약 완료 후 선택 가능)</div>
@@ -314,6 +314,7 @@
           const key = childSnapshot.key;
           const item = childSnapshot.val();
 
+          // UI 명칭을 '지식 요약 노트' 콘셉트로 일관되게 정형화
           const itemHtml = `
             <div class="schedule-item">
               <h3>📘 [${item.subject}] 수행평가 및 시험 일정</h3>
@@ -321,13 +322,13 @@
               <p><strong>📖 범위 원본:</strong> ${item.range}</p>
               
               <div style="margin-top:12px;">
-                <button class="ai-btn" id="summary-btn-${key}" onclick="generateSummaryNote('${key}', '${item.subject}', '${item.range.replace(/\n/g, " ")}')">📋 AI 실전 족보 요약 생성</button>
+                <button class="ai-btn" id="summary-btn-${key}" onclick="generateSummaryNote('${key}', '${item.subject}', '${item.range.replace(/\n/g, " ")}')">📋 AI 핵심 요약 노트 정리</button>
               </div>
               
               <div id="ai-box-${key}" class="ai-box hidden"></div>
               
               <div id="audio-ui-${key}" class="hidden">
-                 <button class="tts-btn" id="tts-btn-${key}" onclick="listenToSummary('${key}', '${item.subject}')">🔊 이 요약 내용 AI 음성으로 듣기</button>
+                 <button class="tts-btn" id="tts-btn-${key}" onclick="listenToSummary('${key}', '${item.subject}')">🔊 이 요약 노트 내용 AI 음성으로 듣기</button>
                  <a id="download-${key}" class="download-link hidden" href="#">mp3 다운로드</a>
                  <div id="audio-container-${key}"></div>
               </div>
@@ -339,7 +340,7 @@
     }
 
     // ----------------------------------------------------
-    // [1단계] 고품질 족보 요약 노트 생성
+    // [1단계] 고품질 요약 노트 생성 프로세스
     // ----------------------------------------------------
     async function generateSummaryNote(key, subject, range) {
       const btn = document.getElementById(`summary-btn-${key}`);
@@ -347,10 +348,10 @@
       const audioUI = document.getElementById(`audio-ui-${key}`);
 
       btn.disabled = true;
-      btn.textContent = "⏳ GPT가 족보 요약 노트 생성 중...";
+      btn.textContent = "⏳ GPT가 핵심 요약 노트 정리 중...";
       aiBox.classList.remove('hidden');
-      aiBox.innerText = "🤖 핵심 지식 노트를 컴파일하고 있습니다. 잠시만 기다려 주세요...";
-      audioUI.classList.add('hidden'); // 요약 전에는 음성UI 숨김
+      aiBox.innerText = "🤖 지식 본문을 상세하게 분석하여 요약 노트를 구성하고 있습니다. 잠시만 기다려 주세요...";
+      audioUI.classList.add('hidden'); 
 
       try {
         const chatResponse = await fetch(APPS_SCRIPT_URL, {
@@ -365,7 +366,7 @@
         const chatData = await chatResponse.json();
         if (chatData.answer) {
           aiBox.innerText = chatData.answer;
-          audioUI.classList.remove('hidden'); // ✅ 요약 완료 후 음성 버튼 등장!
+          audioUI.classList.remove('hidden'); // 요약문 출력 직후 음성 가이드 버튼 표시
           btn.textContent = "✅ 요약 노트 생성 완료";
         } else {
           throw new Error(chatData.error || "데이터 응답 실패");
@@ -373,12 +374,12 @@
       } catch (error) {
         aiBox.innerText = `❌ 오류 발생: ${error.message}`;
         btn.disabled = false;
-        btn.textContent = "📋 AI 실전 족보 요약 생성";
+        btn.textContent = "📋 AI 핵심 요약 노트 정리";
       }
     }
 
     // ----------------------------------------------------
-    // [2단계] 생성된 요약문을 음성으로 변환 (1초 끊김 해결)
+    // [2단계] 생성된 지식 정리 텍스트를 오디오로 인코딩
     // ----------------------------------------------------
     async function listenToSummary(key, subject) {
       const btn = document.getElementById(`tts-btn-${key}`);
@@ -391,10 +392,9 @@
       const speed = Number(document.getElementById('speedInput').value || 1.0);
 
       btn.disabled = true;
-      btn.textContent = "⏳ 음성 가이드 제작 중...";
+      btn.textContent = "⏳ 음성 파일 제작 중...";
 
       try {
-        // 🌟 1초 끊김 차단을 위해 줄바꿈 및 특수문자 정제
         const cleanText = summaryText.replace(/\n/g, ' ').replace(/[*#`\-]/g, ' ').replace(/\s+/g, ' ').trim();
 
         const response = await fetch(APPS_SCRIPT_URL, {
@@ -420,7 +420,7 @@
         btn.textContent = "🔊 다시 듣기";
       } catch (error) {
         alert("음성 생성 오류: " + error.message);
-        btn.textContent = "🔊 이 요약 내용 AI 음성으로 듣기";
+        btn.textContent = "🔊 이 요약 노트 내용 AI 음성으로 듣기";
       } finally {
         btn.disabled = false;
       }
