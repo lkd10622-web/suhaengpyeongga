@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI 스마트 학업 플래너 & TTS</title>
+  <title>Claude AI 스마트 학업 플래너</title>
   <style>
     * { box-sizing: border-box; }
 
@@ -38,6 +38,15 @@
       font-size: 14px;
     }
 
+    .api-key-box {
+      background: #fff3e0;
+      border: 2px dashed #ffb74d;
+      padding: 16px;
+      border-radius: 16px;
+      margin-bottom: 20px;
+    }
+    .api-key-box .label { color: #e65100; font-weight: bold; margin-bottom: 6px; }
+
     .info {
       padding: 14px;
       margin-bottom: 20px;
@@ -60,14 +69,7 @@
       border: 1px solid #d0e8ff;
     }
 
-    .option-box {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    select, input, textarea {
+    input, textarea {
       width: 100%;
       padding: 12px;
       border: 1px solid #ddd;
@@ -77,17 +79,15 @@
       font-family: Arial, sans-serif;
     }
 
-    select, input { height: 44px; }
-
+    input { height: 44px; }
     textarea { min-height: 100px; resize: vertical; line-height: 1.5; }
 
-    textarea:focus, select:focus, input:focus {
+    textarea:focus, input:focus {
       border-color: #42a5f5;
       box-shadow: 0 0 0 3px rgba(66, 165, 245, 0.15);
     }
 
     .form-group { margin-bottom: 15px; }
-
     .label { font-weight: bold; margin-bottom: 6px; }
 
     .button-row {
@@ -98,7 +98,7 @@
       margin-top: 14px;
     }
 
-    button, .download-link {
+    button {
       border: none;
       border-radius: 12px;
       padding: 0 18px;
@@ -107,22 +107,19 @@
       cursor: pointer;
       transition: 0.15s;
       font-weight: bold;
-      text-decoration: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
     }
 
-    button:hover, .download-link:hover { transform: translateY(-2px); opacity: 0.9; }
-
+    button:hover { transform: translateY(-2px); opacity: 0.9; }
     button:disabled { cursor: not-allowed; opacity: 0.6; transform: none; }
 
     .make-btn { background: #42a5f5; color: white; width: 100%; }
     .clear-btn { background: #b0bec5; color: white; }
     .logout-btn { background: #e57373; color: white; height: 36px; padding: 0 12px; font-size: 13px; }
     .ai-btn { background: #9b59b6; color: white; width: auto; height: 40px; font-size: 13px; margin-top: 8px;}
-    .tts-btn { background: #2ecc71; color: white; width: auto; height: 40px; font-size: 13px; margin-top: 12px; }
-    .download-link { background: #7e57c2; color: white; height: 38px; font-size: 13px; padding: 0 12px; margin-top: 8px; }
+    .tts-btn { background: #e0e0e0; color: #777; width: auto; height: 40px; font-size: 13px; margin-top: 12px; }
 
     .hidden { display: none; }
 
@@ -157,18 +154,16 @@
       color: #4a148c;
     }
 
-    audio { width: 100%; margin-top: 12px; }
-
     .help { margin-top: 20px; font-size: 13px; color: #777; line-height: 1.6; text-align: center; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🧠 AI 스마트 학업 플래너 & TTS</h1>
-    <div class="subtitle">계정별 일정을 저장하고 맞춤형 AI 핵심 개념 요약 및 오디오 인코딩 가이드를 지원합니다</div>
+    <h1>🧠 Claude AI 스마트 학업 플래너</h1>
+    <div class="subtitle">계정별 일정을 저장하고 Claude 3.5 Sonnet 기반 맞춤형 핵심 개념 요약을 지원합니다</div>
 
     <div class="info">
-      안내: 친구들과 공유하여 사용 시 각자 구글 계정으로 로그인하면 본인만의 데이터를 안전하게 관리할 수 있습니다.
+      안내: 발급받으신 Claude 클라우드 키(sk-ant-...)를 아래 주황색 칸에 직접 입력하여 안전하고 자유롭게 이용하세요.
     </div>
 
     <div id="loginSection" style="text-align: center; padding: 40px 0;">
@@ -182,6 +177,11 @@
         <button class="logout-btn" id="logoutBtn">로그아웃</button>
       </div>
 
+      <div class="api-key-box">
+        <div class="label">🔑 Claude API Key 직접 입력창</div>
+        <input type="password" id="userApiKeyInput" placeholder="sk-ant-api03-으로 시작하는 클로드 키를 입력해 주세요." />
+      </div>
+
       <div class="form-group">
         <div class="label">과목명</div>
         <input type="text" id="subjectInput" placeholder="예: 정보, 수학, 세계사" />
@@ -190,23 +190,6 @@
       <div class="form-group">
         <div class="label">시험 범위 / 수행평가 내용 (AI 요약 대상)</div>
         <textarea id="textInput" placeholder="인공지능이 핵심 개념을 요약하고 노트를 만들어줄 본문 내용을 적어주세요."></textarea>
-      </div>
-
-      <div class="label">인공지능 목소리 설정 (요약 완료 후 선택 가능)</div>
-      <div class="option-box">
-        <select id="modelSelect">
-          <option value="tts-1">tts-1 빠른 생성</option>
-          <option value="tts-1-hd">tts-1-hd 고품질</option>
-        </select>
-        <select id="voiceSelect">
-          <option value="alloy">alloy (기본)</option>
-          <option value="echo">echo (부드러운 남성)</option>
-          <option value="fable">fable</option>
-          <option value="onyx">onyx (묵직한 남성)</option>
-          <option value="nova">nova (선명한 여성)</option>
-          <option value="shimmer">shimmer</option>
-        </select>
-        <input id="speedInput" type="number" min="0.25" max="4.0" step="0.05" value="1.0" placeholder="속도" />
       </div>
 
       <div class="form-group">
@@ -244,8 +227,8 @@
       measurementId: "G-SEWH1149ZZ"
     };
 
-    // 🌟 방금 주신 전용 신규 앱스크립트 웹앱 주소 정밀 바인딩 완료!
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz4rIxNle8pkU6E1vDo7KNvxissIafput_J5PaWJZwdbhcaAKxdKpOIuEBPBnZp99obtg/exec';
+    // 🌟 방금 주신 가장 최신의 전용 라우터 주소 연동 완료!
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjMPPXyLaX_jwnyFQDV0ZrLE2CIrMPzBMi1SWH7qq4h-KaNDODu264mZQeV2-B_bPOcg/exec';
 
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
@@ -258,6 +241,11 @@
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('appSection').classList.remove('hidden');
         document.getElementById('userName').innerText = user.displayName;
+        
+        // 브라우저 캐시에서 기존 입력했던 키 자동 복구 기능
+        const savedKey = localStorage.getItem('my_saved_claude_key');
+        if(savedKey) { document.getElementById('userApiKeyInput').value = savedKey; }
+        
         loadSchedules(user.uid); 
       } else {
         currentUser = null;
@@ -285,15 +273,11 @@
       const subject = document.getElementById('subjectInput').value.trim();
       const range = document.getElementById('textInput').value.trim();
       const date = document.getElementById('examDate').value;
-      
-      const model = document.getElementById('modelSelect').value;
-      const voice = document.getElementById('voiceSelect').value;
-      const speed = Number(document.getElementById('speedInput').value || 1.0);
 
       if (!subject || !range || !date) { alert("모든 칸을 입력해 주세요!"); return; }
 
       database.ref('user_schedules/' + currentUser.uid).push({
-        subject: subject, range: range, date: date, model: model, voice: voice, speed: speed
+        subject: subject, range: range, date: date
       }).then(() => {
         alert("일정이 플래너에 기록되었습니다.");
         document.getElementById('subjectInput').value = "";
@@ -322,15 +306,13 @@
               <p><strong>📖 범위 원본:</strong> ${item.range}</p>
               
               <div style="margin-top:12px;">
-                <button class="ai-btn" id="summary-btn-${key}" onclick="generateSummaryNote('${key}', '${item.subject}', '${item.range.replace(/\n/g, " ")}')">📋 AI 핵심 요약 노트 정리</button>
+                <button class="ai-btn" id="summary-btn-${key}" onclick="generateClaudeSummary('${key}', '${item.subject}', '${item.range.replace(/\n/g, " ")}')">📋 Claude 핵심 요약 노트 정리</button>
               </div>
               
               <div id="ai-box-${key}" class="ai-box hidden"></div>
               
               <div id="audio-ui-${key}" class="hidden">
-                 <button class="tts-btn" id="tts-btn-${key}" onclick="listenToSummary('${key}', '${item.subject}')">🔊 이 요약 노트 내용 AI 음성으로 듣기</button>
-                 <a id="download-${key}" class="download-link hidden" href="#">mp3 다운로드</a>
-                 <div id="audio-container-${key}"></div>
+                 <button class="tts-btn" disabled>🔊 오디오 듣기 (Claude 엔진 모드에선 지원 안 됨)</button>
               </div>
             </div>
           `;
@@ -339,98 +321,49 @@
       });
     }
 
-    async function generateSummaryNote(key, subject, range) {
+    async function generateClaudeSummary(key, subject, range) {
       const btn = document.getElementById(`summary-btn-${key}`);
       const aiBox = document.getElementById(`ai-box-${key}`);
       const audioUI = document.getElementById(`audio-ui-${key}`);
+      const inputKey = document.getElementById('userApiKeyInput').value.trim();
+
+      if(!inputKey || !inputKey.startsWith('sk-ant')) {
+        alert("⚠️ 유효한 Claude API 키(sk-ant-...)를 상단 입력창에 먼저 정확히 입력해 주세요!");
+        return;
+      }
+      
+      // 로컬 스토리지에 키 캐싱
+      localStorage.setItem('my_saved_claude_key', inputKey);
 
       btn.disabled = true;
-      btn.textContent = "⏳ GPT가 핵심 요약 노트 정리 중...";
+      btn.textContent = "⏳ Claude가 지식을 마스터하는 중...";
       aiBox.classList.remove('hidden');
-      aiBox.innerText = "🤖 지식 본문을 상세하게 분석하여 요약 노트를 구성하고 있습니다. 잠시만 기다려 주세요...";
+      aiBox.innerText = "🤖 Claude 3.5 Sonnet이 본문을 심층 분석하여 서술형 요약 노트를 컴파일하고 있습니다...";
       audioUI.classList.add('hidden'); 
 
       try {
-        const chatResponse = await fetch(APPS_SCRIPT_URL, {
+        const response = await fetch(APPS_SCRIPT_URL, {
           method: 'POST',
           body: JSON.stringify({
             type: 'chat',
-            question: `과목명: [${subject}]\n공부 범위: [${range}]\n\n위 내용에 관해 공부 방향 추천이 아닌 실전 핵심 요약 노트를 작성해줘.\n1. [핵심 개념 마스터]: 시험에 무조건 출제되는 핵심 원리 3가지를 문장 형식으로 서술형 요약해줘.\n2. [필수 암기 키워드]: 주요 핵심 단어 리스트와 뜻풀이를 정리해줘.\n3. [적중 예상문제]: 객관식 또는 서술형 문제 2개를 뽑고 정답과 해설을 적어줘.\n구어체 없이 바로 핵심 지식 노트를 깔끔하게 텍스트로 채워줘.`,
-            model: 'gpt-4o-mini'
+            apiKey: inputKey, // 주입식 데이터 전달
+            question: `과목명: [${subject}]\n공부 범위: [${range}]\n\n위 내용에 관해 실전 핵심 요약 노트를 작성해줘.\n1. [핵심 개념 마스터]: 시험에 무조건 출제되는 핵심 원리 3가지를 문장 형식으로 서술형 요약해줘.\n2. [필수 암기 키워드]: 주요 핵심 단어 리스트와 뜻풀이를 정리해줘.\n3. [적중 예상문제]: 객관식 또는 서술형 문제 2개를 뽑고 정답과 해설을 적어줘.\n구어체 친절한 멘트 없이 바로 핵심 지식 노트를 깔끔하게 한국어로 채워줘.`
           })
         });
 
-        const chatData = await chatResponse.json();
+        const chatData = await response.json();
         if (chatData.answer) {
           aiBox.innerText = chatData.answer;
           audioUI.classList.remove('hidden'); 
-          btn.textContent = "✅ 요약 노트 생성 완료";
+          btn.textContent = "✅ 요약 노트 정리 완료";
         } else {
           throw new Error(chatData.error || "데이터 응답 실패");
         }
       } catch (error) {
         aiBox.innerText = `❌ 오류 발생: ${error.message}`;
         btn.disabled = false;
-        btn.textContent = "📋 AI 핵심 요약 노트 정리";
+        btn.textContent = "📋 Claude 핵심 요약 노트 정리";
       }
-    }
-
-    async function listenToSummary(key, subject) {
-      const btn = document.getElementById(`tts-btn-${key}`);
-      const summaryText = document.getElementById(`ai-box-${key}`).innerText;
-      const audioContainer = document.getElementById(`audio-container-${key}`);
-      const dlLink = document.getElementById(`download-${key}`);
-      
-      const model = document.getElementById('modelSelect').value;
-      const voice = document.getElementById('voiceSelect').value;
-      const speed = Number(document.getElementById('speedInput').value || 1.0);
-
-      btn.disabled = true;
-      btn.textContent = "⏳ 음성 파일 제작 중...";
-
-      try {
-        const cleanText = summaryText.replace(/\n/g, ' ').replace(/[*#`\-]/g, ' ').replace(/\s+/g, ' ').trim();
-
-        const response = await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          body: JSON.stringify({
-            type: 'tts',
-            text: cleanText,
-            model: model,
-            voice: voice,
-            speed: speed
-          })
-        });
-
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-
-        const audioUrl = base64ToAudioUrl(data.audioBase64, 'audio/mpeg');
-        audioContainer.innerHTML = `<audio controls src="${audioUrl}" autoplay></audio>`;
-        dlLink.href = audioUrl;
-        dlLink.download = `${subject}-요약노트.mp3`;
-        dlLink.classList.remove('hidden');
-
-        btn.textContent = "🔊 다시 듣기";
-      } catch (error) {
-        alert("음성 생성 오류: " + error.message);
-        btn.textContent = "🔊 이 요약 노트 내용 AI 음성으로 듣기";
-      } finally {
-        btn.disabled = false;
-      }
-    }
-
-    function base64ToAudioUrl(base64, mimeType) {
-      const byteCharacters = atob(base64);
-      const byteArrays = [];
-      for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-        const slice = byteCharacters.slice(offset, offset + 512);
-        const byteNumbers = new Array(slice.length);
-        for (let i = 0; i < slice.length; i++) { byteNumbers[i] = slice.charCodeAt(i); }
-        const byteArray = new Uint8Array(byteNumbers);
-        byteArrays.push(byteArray);
-      }
-      return URL.createObjectURL(new Blob(byteArrays, { type: mimeType }));
     }
   </script>
 </body>
