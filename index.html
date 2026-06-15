@@ -2,10 +2,13 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI 학업 지원 플래너 & 족보 요약기</title>
+  
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  
   <style>
     body {
       font-family: 'Malgun Gothic', sans-serif;
@@ -22,129 +25,229 @@
       border-radius: 12px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
-    h1, h2 { text-align: center; color: #1a73e8; }
+    h1, h2 { text-align: center; color: #1a73e8; margin-top: 10px; }
+    
+    /* 인증 영역 스타일 */
+    .auth-section {
+      text-align: right;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px dashed #eee;
+    }
+    .user-info { font-weight: bold; margin-right: 10px; color: #555; }
+    
+    /* 버튼 공통 스타일 */
     .btn {
-      display: block;
-      width: 100%;
-      padding: 12px;
-      background-color: #1a73e8;
-      color: white;
+      padding: 10px 15px;
       border: none;
-      border-radius: 8px;
-      font-size: 16px;
+      border-radius: 6px;
+      font-size: 14px;
       cursor: pointer;
       font-weight: bold;
-      margin-top: 15px;
     }
-    .btn:hover { background-color: #1557b0; }
-    .btn-summary { background-color: #34a853; }
+    .btn-blue { background-color: #1a73e8; color: white; }
+    .btn-blue:hover { background-color: #1557b0; }
+    .btn-google { background-color: #4285f4; color: white; }
+    .btn-google:hover { background-color: #357ae8; }
+    .btn-logout { background-color: #5f6368; color: white; }
+    .btn-logout:hover { background-color: #4ab3b3; }
+    
+    .btn-summary { background-color: #34a853; color: white; width: 100%; padding: 12px; font-size: 16px; margin-top: 15px; }
     .btn-summary:hover { background-color: #2b8c44; }
     .btn-audio { background-color: #fbbc05; color: #333; }
     .btn-audio:hover { background-color: #e6a800; }
+    .btn-danger { background-color: #ea4335; color: white; padding: 5px 10px; font-size: 12px; }
+    
     .input-group { margin-bottom: 15px; }
     .input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
     .input-group input, .input-group textarea {
       width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;
     }
+    
+    /* 리스트 및 요약창 */
     .list-container { margin-top: 25px; background: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+    .schedule-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px; border-bottom: 1px solid #eee; margin-bottom: 5px; background: #fff; border-radius: 4px;
+    }
     .summary-box {
       margin-top: 25px; padding: 20px; background: #e8f0fe; border-left: 5px solid #1a73e8; border-radius: 6px;
       white-space: pre-wrap; line-height: 1.6; display: none;
     }
-    .audio-controls { display: none; margin-top: 15px; text-align: center; }
-    .status { color: #666; font-style: italic; text-align: center; margin-top: 10px; }
+    .audio-controls { display: none; margin-top: 15px; text-align: center; background: #fff3cd; padding: 15px; border-radius: 8px; }
+    .status { color: #666; font-style: italic; text-align: center; margin-top: 10px; font-weight: bold; }
+    .main-content { display: none; } /* 로그인 전에는 숨김 */
   </style>
 </head>
 <body>
 
 <div class="container">
+  <div class="auth-section">
+    <div id="loggedOutUI">
+      <span class="user-info">서비스를 이용하려면 로그인이 필요합니다.</span>
+      <button class="btn btn-google" onclick="loginWithGoogle()">🔑 구글 계정으로 로그인</button>
+    </div>
+    <div id="loggedInUI" style="display: none;">
+      <span class="user-info" id="userNameDisplay">사용자님 환영합니다!</span>
+      <button class="btn btn-logout" onclick="logoutFromFirebase()">🚪 로그아웃</button>
+    </div>
+  </div>
+
   <h1>🎓 AI 학업 지원 플래너</h1>
   
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAbZphaQMs38wC0zRDBXOT7oiRe2p8ABQs",
-      authDomain: "yaho-9c14e.firebaseapp.com",
-      databaseURL: "https://yaho-9c14e-default-rtdb.firebaseio.com",
-      projectId: "yaho-9c14e",
-      storageBucket: "yaho-9c14e.firebasestorage.app",
-      messagingSenderId: "63667122547",
-      appId: "1:63667122547:web:1fb4d268d3e96b25d79506"
-    };
-    firebase.initializeApp(firebaseConfig);
-    // (여기에 필요한 로그인 및 DB 로직이 기존에 구현되어 있다면 그대로 작동합니다)
-  </script>
+  <div class="main-content" id="mainPlannerContent">
+    <div class="input-group">
+      <label>과목명</label>
+      <input type="text" id="subject" placeholder="예: 통합과학, 수학I">
+    </div>
+    <div class="input-group">
+      <label>시험 범위 및 학습 내용</label>
+      <textarea id="range" rows="3" placeholder="예: 교과서 45p~80p, 세포 분열과 유전 법칙 단원"></textarea>
+    </div>
+    <button class="btn btn-blue" style="width:100%; padding:12px; font-size:15px;" onclick="addSchedule()">📅 플래너에 일정 저장</button>
 
-  <script>
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxdrA0blPy-eEDSEPG7FtMPz7EaehGUXpIzeTaFz3MOrg0DhuJdh5Of0i2Z-8SM5Lnfyg/exec';
-    let currentTtsText = ""; // TTS용 전역 변수
-  </script>
+    <div class="list-container">
+      <h3>📋 나의 수행평가 & AI 학습 지원 목록</h3>
+      <div id="scheduleList">데이터를 불러오는 중입니다...</div>
+    </div>
 
-  <div class="input-group">
-    <label>과목명</label>
-    <input type="text" id="subject" placeholder="예: 통합과학, 수학I">
+    <button class="btn btn-summary" onclick="generateAiSummary()">📋 공부할 내용 요약 생성 (Gemini)</button>
+    
+    <div class="audio-controls" id="audioSection">
+      <h4 style="margin:0 0 10px 0; color:#856404;">🔊 AI 요약 음성 컨트롤러</h4>
+      <button class="btn btn-audio" style="margin-right:10px;" onclick="playTtsAudio()">▶️ 오디오 듣기 (TTS)</button>
+      <button class="btn" style="background-color:#ea4335; color:white;" onclick="stopTtsAudio()">⏹️ 음성 중지</button>
+    </div>
+
+    <div class="status" id="statusMessage"></div>
+
+    <div class="summary-box" id="summaryBox"></div>
   </div>
-  <div class="input-group">
-    <label>시험 범위 및 학습 내용</label>
-    <textarea id="range" rows="3" placeholder="예: 교과서 45p~80p, 세포 분열과 유전 법칙 단원"></textarea>
-  </div>
-  <button class="btn" onclick="addSchedule()">📅 플래너에 일정 등록</button>
-
-  <div class="list-container">
-    <h3>📋 나의 수행평가 & AI 학습 지원 목록</h3>
-    <div id="scheduleList">등록된 일정이 없습니다. 테스트용 내용을 입력 후 등록해 주세요.</div>
-  </div>
-
-  <button class="btn btn-summary" onclick="generateAiSummary()">📋 공부할 내용 요약 생성 (Gemini)</button>
-  
-  <div class="audio-controls" id="audioSection">
-    <button class="btn btn-audio" onclick="playTtsAudio()">🔊 요약 내용 오디오로 듣기 (TTS)</button>
-    <button class="btn" style="background-color:#ea4335;" onclick="stopTtsAudio()">⏹️ 음성 중지</button>
-  </div>
-
-  <div class="status" id="statusMessage"></div>
-
-  <div class="summary-box" id="summaryBox"></div>
 </div>
 
 <script>
-  // 간단한 화면 UI용 임시 일정 저장 배열
-  let schedules = [];
+  // 1️⃣ [파이어베이스 초기화 및 앱스크립트 주소 설정]
+  const firebaseConfig = {
+    apiKey: "AIzaSyAbZphaQMs38wC0zRDBXOT7oiRe2p8ABQs",
+    authDomain: "yaho-9c14e.firebaseapp.com",
+    databaseURL: "https://yaho-9c14e-default-rtdb.firebaseio.com",
+    projectId: "yaho-9c14e",
+    storageBucket: "yaho-9c14e.firebasestorage.app",
+    messagingSenderId: "63667122547",
+    appId: "1:63667122547:web:1fb4d268d3e96b25d79506"
+  };
+  firebase.initializeApp(firebaseConfig);
 
+  const auth = firebase.auth();
+  const database = firebase.database();
+  
+  // 🔗 방금 정상 배포 완료하신 최신 앱스크립트 주소
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxdrA0blPy-eEDSEPG7FtMPz7EaehGUXpIzeTaFz3MOrg0DhuJdh5Of0i2Z-8SM5Lnfyg/exec';
+  
+  let currentUser = null;
+  let currentTtsText = ""; // TTS용 요약본 저장 변수
+  let localSchedules = []; // AI 요약에 보낼 데이터 캐시 배열
+
+  // 2️⃣ [파이어베이스 인증 상태 실시간 감지 함수]
+  auth.onAuthStateChanged((user) => {
+    if (user) {
+      currentUser = user;
+      document.getElementById('loggedOutUI').style.display = 'none';
+      document.getElementById('loggedInUI').style.display = 'block';
+      document.getElementById('userNameDisplay').innerText = `👤 ${user.displayName}님 환영합니다!`;
+      document.getElementById('mainPlannerContent').style.display = 'block';
+      
+      // 로그인 성공 시 해당 유저의 고유 데이터를 파이어베이스 DB에서 실시간 로드
+      loadSchedules(user.uid);
+    } else {
+      currentUser = null;
+      document.getElementById('loggedOutUI').style.display = 'block';
+      document.getElementById('loggedInUI').style.display = 'none';
+      document.getElementById('mainPlannerContent').style.display = 'none';
+      stopTtsAudio();
+    }
+  });
+
+  // 3️⃣ [파이어베이스 구글 로그인 / 로그아웃 실제 구현]
+  function loginWithGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(error => {
+      alert("로그인 중 오류 발생: " + error.message);
+    });
+  }
+
+  function logoutFromFirebase() {
+    auth.signOut().then(() => {
+      alert("로그아웃 되었습니다.");
+    });
+  }
+
+  // 4️⃣ [파이어베이스 Realtime Database 데이터 저장 및 로드]
   function addSchedule() {
-    const subject = document.getElementById('subject').value;
-    const range = document.getElementById('range').value;
+    if (!currentUser) return;
+    
+    const subject = document.getElementById('subject').value.trim();
+    const range = document.getElementById('range').value.trim();
     
     if(!subject || !range) {
-      alert("과목과 범위를 입력해 주세요!");
+      alert("과목명과 학습 내용을 빠짐없이 입력해 주세요!");
       return;
     }
     
-    schedules.push({ subject, range });
-    document.getElementById('subject').value = '';
-    document.getElementById('range').value = '';
-    
-    updateList();
-  }
-
-  function updateList() {
-    const listDiv = document.getElementById('scheduleList');
-    if(schedules.length === 0) {
-      listDiv.innerHTML = "등록된 일정이 없습니다.";
-      return;
-    }
-    
-    let html = "<ul>";
-    schedules.forEach((item, index) => {
-      html += `<li><strong>[${item.subject}]</strong> ${item.range}</li>`;
+    // 유저 고유 UID 폴더 아래에 시간 기반으로 자동 데이터 밀어넣기
+    const newScheduleRef = database.ref('users/' + currentUser.uid + '/schedules').push();
+    newScheduleRef.set({
+      subject: subject,
+      range: range,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    }).then(() => {
+      document.getElementById('subject').value = '';
+      document.getElementById('range').value = '';
+    }).catch(err => {
+      alert("DB 저장 오류: " + err.message);
     });
-    html += "</ul>";
-    listDiv.innerHTML = html;
   }
 
-  // 🧠 1. 제미나이 AI 요약 생성 함수
+  function loadSchedules(uid) {
+    database.ref('users/' + uid + '/schedules').on('value', (snapshot) => {
+      const listDiv = document.getElementById('scheduleList');
+      const data = snapshot.val();
+      
+      localSchedules = []; // 배열 초기화
+      
+      if (!data) {
+        listDiv.innerHTML = "<p style='text-align:center; color:#999;'>등록된 일정이 없습니다. 첫 일정을 등록해 보세요!</p>";
+        return;
+      }
+      
+      let html = "";
+      for (let key in data) {
+        localSchedules.push(data[key]); // AI 요청에 쓸 데이터 적재
+        html += `
+          <div class="schedule-item">
+            <div>
+              <span style="color:#1a73e8; font-weight:bold;">[${data[key].subject}]</span> 
+              <span>${data[key].range}</span>
+            </div>
+            <button class="btn btn-danger" onclick="deleteSchedule('${key}')">삭제</button>
+          </div>
+        `;
+      }
+      listDiv.innerHTML = html;
+    });
+  }
+
+  function deleteSchedule(key) {
+    if (!currentUser) return;
+    if (confirm("이 일정을 삭제하시겠습니까?")) {
+      database.ref('users/' + currentUser.uid + '/schedules/' + key).remove();
+    }
+  }
+
+  // 🧠 5. 제미나이 AI 최신 우회형 요약 엔진 호출
   async function generateAiSummary() {
-    if (schedules.length === 0) {
-      alert("플래너에 등록된 일정이 없습니다. 최소 1개 이상의 일정을 추가한 뒤 요약해 주세요!");
+    if (localSchedules.length === 0) {
+      alert("등록된 학습 일정이 없습니다. 내용을 먼저 저장해 주세요!");
       return;
     }
 
@@ -152,83 +255,69 @@
     const summaryBox = document.getElementById('summaryBox');
     const audioSection = document.getElementById('audioSection');
     
-    statusMsg.innerText = "⚡ 제미나이가 실전 족보 요약을 생성하는 중입니다. 잠시만 기다려주세요...";
+    statusMsg.innerText = "⚡ 파이어베이스 검증 통과! 제미나이가 실전 족보 요약을 생성하는 중입니다...";
     summaryBox.style.display = 'none';
     audioSection.style.display = 'none';
-    stopTtsAudio(); // 기존 재생 중인 오디오가 있다면 중지
+    stopTtsAudio();
 
-    // 등록된 모든 일정을 텍스트로 합성
-    let scheduleText = schedules.map(s => `과목: ${s.subject}\n범위: ${s.range}`).join('\n\n');
+    // 파이어베이스에서 실시간으로 긁어온 텍스트 병합
+    let scheduleText = localSchedules.map(s => `과목: ${s.subject}\n범위: ${s.range}`).join('\n\n');
     let promptQuestion = `아래 시험 범위들을 분석해서 고등학교 시험에 무조건 나오는 핵심 요점정리 족보를 만들어줘. 암기 팁도 포함해줘:\n\n${scheduleText}`;
 
     try {
       const response = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain' }, // 구글 웹앱 통신용 표준 세팅
+        headers: { 'Content-Type': 'text/plain' }, 
         body: JSON.stringify({ question: promptQuestion })
       });
 
-      if (!response.ok) throw new Error("네트워크 응답 실패");
+      if (!response.ok) throw new Error("네트워크 응답 거절");
 
       const data = await response.json();
 
       if (data.error) {
-        statusMsg.innerText = "❌ 오류 발생: " + data.error;
+        statusMsg.innerText = "❌ 앱스크립트 서버 오류: " + data.error;
       } else {
-        statusMsg.innerText = "✅ 요약본 생성 완료!";
+        statusMsg.innerText = "✅ 요약본 및 오디오 낭독 데이터 생성 완료!";
         summaryBox.innerText = data.answer;
         summaryBox.style.display = 'block';
         
-        // 백엔드(앱스크립트)에서 가공해 준 깔끔한 TTS용 텍스트 저장
+        // 특수문자를 제거하여 음성이 끊기지 않게 가공
         currentTtsText = data.ttsText || data.answer.replace(/[*#`_\-]/g, ' ');
-        
-        // 요약이 성공하면 오디오 듣기 버튼 영역을 스르륵 노출
-        audioSection.style.display = 'block';
+        audioSection.style.display = 'block'; // 오디오 컨트롤 노출
       }
     } catch (error) {
-      statusMsg.innerText = "❌ 오류 발생: Failed to fetch\n(구글 앱스크립트 주소 매칭 또는 코드 배포 상태를 다시 확인해 보세요.)";
+      statusMsg.innerText = "❌ 오류 발생: Failed to fetch\n(앱스크립트에서 새 배포 시 '모든 사용자'로 세팅했는지 다시 한번 확인해 주세요.)";
       console.error(error);
     }
   }
 
-  // 🔊 2. 브라우저 내장엔진 기반 한국어 오디오 재생 함수 (TTS)
+  // 🔊 6. 브라우저 최적화 한국어 오디오 재생 (TTS)
   function playTtsAudio() {
     if (!currentTtsText) {
-      alert("읽어줄 요약 내용이 없습니다.");
+      alert("읽어줄 요약본 내용이 존재하지 않습니다.");
       return;
     }
 
-    // 현재 읽고 있는 음성이 있다면 즉시 취소하여 겹침 방지
-    window.speechSynthesis.cancel();
+    window.speechSynthesis.cancel(); // 겹침 방지 초기화
 
-    // 브라우저 내장 SpeechSynthesisUtterance 객체 생성
     const speech = new SpeechSynthesisUtterance(currentTtsText);
-    
-    // 한국어(ko-KR) 전용 설정
     speech.lang = 'ko-KR';
-    speech.rate = 1.0;  // 읽기 속도 (0.5 ~ 2.0)
-    speech.pitch = 1.0; // 목소리 톤 (0.0 ~ 2.0)
+    speech.rate = 1.0; 
+    speech.pitch = 1.0;
 
-    // 스마트폰 및 브라우저별 한국어 최적 구글 목소리 매칭 (선택사항)
     const voices = window.speechSynthesis.getVoices();
-    const koreanVoice = voices.find(voice => voice.lang === 'ko-KR' || voice.lang.startsWith('ko'));
-    if (koreanVoice) {
-      speech.voice = koreanVoice;
-    }
+    const koreanVoice = voices.find(v => v.lang === 'ko-KR' || v.lang.startsWith('ko'));
+    if (koreanVoice) speech.voice = koreanVoice;
 
-    // 재생 상태 표시
-    document.getElementById('statusMessage').innerText = "📢 AI 요약본을 음성으로 낭독하고 있습니다...";
-    
-    // 오디오 시동!
+    document.getElementById('statusMessage').innerText = "📢 생성된 요약본을 음성으로 낭독하고 있습니다...";
     window.speechSynthesis.speak(speech);
 
-    // 재생이 정상 종료되었을 때 이벤트
     speech.onend = function() {
       document.getElementById('statusMessage').innerText = "✅ 음성 낭독이 완료되었습니다.";
     };
   }
 
-  // ⏹️ 3. 오디오 재생 강제 중지 함수
   function stopTtsAudio() {
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -236,7 +325,6 @@
     }
   }
 
-  // 브라우저 음성 목록 로딩 처리 (일부 브라우저 비동기 버그 방지용)
   if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
     speechSynthesis.onvoiceschanged = () => {};
   }
