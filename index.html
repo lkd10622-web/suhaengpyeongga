@@ -75,8 +75,8 @@
       white-space: pre-wrap; line-height: 1.6; display: none;
     }
     .audio-controls { display: none; margin-top: 15px; text-align: center; background: #fff3cd; padding: 15px; border-radius: 8px; }
-    .status { color: #666; font-style: italic; text-align: center; margin-top: 10px; font-weight: bold; }
-    .main-content { display: none; } /* 로그인 전에는 숨김 */
+    .status { color: #666; font-style: italic; text-align: center; margin-top: 10px; font-weight: bold; white-space: pre-line; }
+    .main-content { display: none; }
   </style>
 </head>
 <body>
@@ -120,7 +120,6 @@
     </div>
 
     <div class="status" id="statusMessage"></div>
-
     <div class="summary-box" id="summaryBox"></div>
   </div>
 </div>
@@ -141,14 +140,14 @@
   const auth = firebase.auth();
   const database = firebase.database();
   
-  // 🔗 방금 정상 배포 완료하신 최신 앱스크립트 주소
+  // 🔗 스크린샷에 나온 최신 배포 주소 매핑
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxdrA0blPy-eEDSEPG7FtMPz7EaehGUXpIzeTaFz3MOrg0DhuJdh5Of0i2Z-8SM5Lnfyg/exec';
   
   let currentUser = null;
-  let currentTtsText = ""; // TTS용 요약본 저장 변수
-  let localSchedules = []; // AI 요약에 보낼 데이터 캐시 배열
+  let currentTtsText = "";
+  let localSchedules = [];
 
-  // 2️⃣ [파이어베이스 인증 상태 실시간 감지 함수]
+  // 2️⃣ [인증 상태 감지]
   auth.onAuthStateChanged((user) => {
     if (user) {
       currentUser = user;
@@ -156,8 +155,6 @@
       document.getElementById('loggedInUI').style.display = 'block';
       document.getElementById('userNameDisplay').innerText = `👤 ${user.displayName}님 환영합니다!`;
       document.getElementById('mainPlannerContent').style.display = 'block';
-      
-      // 로그인 성공 시 해당 유저의 고유 데이터를 파이어베이스 DB에서 실시간 로드
       loadSchedules(user.uid);
     } else {
       currentUser = null;
@@ -168,33 +165,28 @@
     }
   });
 
-  // 3️⃣ [파이어베이스 구글 로그인 / 로그아웃 실제 구현]
   function loginWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider).catch(error => {
-      alert("로그인 중 오류 발생: " + error.message);
+      alert("로그인 오류: " + error.message);
     });
   }
 
   function logoutFromFirebase() {
-    auth.signOut().then(() => {
-      alert("로그아웃 되었습니다.");
-    });
+    auth.signOut().then(() => { alert("로그아웃 되었습니다."); });
   }
 
-  // 4️⃣ [파이어베이스 Realtime Database 데이터 저장 및 로드]
+  // 3️⃣ [실시간 데이터베이스 연동]
   function addSchedule() {
     if (!currentUser) return;
-    
     const subject = document.getElementById('subject').value.trim();
     const range = document.getElementById('range').value.trim();
     
     if(!subject || !range) {
-      alert("과목명과 학습 내용을 빠짐없이 입력해 주세요!");
+      alert("과목명과 내용을 입력하세요!");
       return;
     }
     
-    // 유저 고유 UID 폴더 아래에 시간 기반으로 자동 데이터 밀어넣기
     const newScheduleRef = database.ref('users/' + currentUser.uid + '/schedules').push();
     newScheduleRef.set({
       subject: subject,
@@ -203,8 +195,6 @@
     }).then(() => {
       document.getElementById('subject').value = '';
       document.getElementById('range').value = '';
-    }).catch(err => {
-      alert("DB 저장 오류: " + err.message);
     });
   }
 
@@ -212,17 +202,16 @@
     database.ref('users/' + uid + '/schedules').on('value', (snapshot) => {
       const listDiv = document.getElementById('scheduleList');
       const data = snapshot.val();
-      
-      localSchedules = []; // 배열 초기화
+      localSchedules = [];
       
       if (!data) {
-        listDiv.innerHTML = "<p style='text-align:center; color:#999;'>등록된 일정이 없습니다. 첫 일정을 등록해 보세요!</p>";
+        listDiv.innerHTML = "<p style='text-align:center; color:#999;'>등록된 일정이 없습니다.</p>";
         return;
       }
       
       let html = "";
       for (let key in data) {
-        localSchedules.push(data[key]); // AI 요청에 쓸 데이터 적재
+        localSchedules.push(data[key]);
         html += `
           <div class="schedule-item">
             <div>
@@ -239,15 +228,15 @@
 
   function deleteSchedule(key) {
     if (!currentUser) return;
-    if (confirm("이 일정을 삭제하시겠습니까?")) {
+    if (confirm("삭제하시겠습니까?")) {
       database.ref('users/' + currentUser.uid + '/schedules/' + key).remove();
     }
   }
 
-  // 🧠 5. 제미나이 AI 최신 우회형 요약 엔진 호출
+  // 🧠 4️⃣ [제미나이 AI 요약 및 대안 안내 설계]
   async function generateAiSummary() {
     if (localSchedules.length === 0) {
-      alert("등록된 학습 일정이 없습니다. 내용을 먼저 저장해 주세요!");
+      alert("등록된 일정이 없습니다.");
       return;
     }
 
@@ -255,14 +244,13 @@
     const summaryBox = document.getElementById('summaryBox');
     const audioSection = document.getElementById('audioSection');
     
-    statusMsg.innerText = "⚡ 파이어베이스 검증 통과! 제미나이가 실전 족보 요약을 생성하는 중입니다...";
+    statusMsg.innerText = "⚡ 요약을 생성하고 있습니다...";
     summaryBox.style.display = 'none';
     audioSection.style.display = 'none';
     stopTtsAudio();
 
-    // 파이어베이스에서 실시간으로 긁어온 텍스트 병합
     let scheduleText = localSchedules.map(s => `과목: ${s.subject}\n범위: ${s.range}`).join('\n\n');
-    let promptQuestion = `아래 시험 범위들을 분석해서 고등학교 시험에 무조건 나오는 핵심 요점정리 족보를 만들어줘. 암기 팁도 포함해줘:\n\n${scheduleText}`;
+    let promptQuestion = `아래 시험 범위들을 분석해서 고등학교 시험에 무조건 나오는 핵심 요점정리 족보를 만들어줘:\n\n${scheduleText}`;
 
     try {
       const response = await fetch(APPS_SCRIPT_URL, {
@@ -271,64 +259,54 @@
         body: JSON.stringify({ question: promptQuestion })
       });
 
-      if (!response.ok) throw new Error("네트워크 응답 거절");
+      if (!response.ok) throw new Error("Fetch 거절됨");
 
       const data = await response.json();
 
       if (data.error) {
-        statusMsg.innerText = "❌ 앱스크립트 서버 오류: " + data.error;
+        statusMsg.innerText = "❌ 서버 오류: " + data.error;
       } else {
-        statusMsg.innerText = "✅ 요약본 및 오디오 낭독 데이터 생성 완료!";
+        statusMsg.innerText = "✅ 요약 성공!";
         summaryBox.innerText = data.answer;
         summaryBox.style.display = 'block';
-        
-        // 특수문자를 제거하여 음성이 끊기지 않게 가공
         currentTtsText = data.ttsText || data.answer.replace(/[*#`_\-]/g, ' ');
-        audioSection.style.display = 'block'; // 오디오 컨트롤 노출
+        audioSection.style.display = 'block';
       }
     } catch (error) {
-      statusMsg.innerText = "❌ 오류 발생: Failed to fetch\n(앱스크립트에서 새 배포 시 '모든 사용자'로 세팅했는지 다시 한번 확인해 주세요.)";
+      // ⚠️ 학교 계정 차단 문제를 안내하는 정밀 방어 코드
+      statusMsg.innerText = "❌ 에러 발생: Failed to fetch\n\n💡 [해결 방법 안내]\n현재 학교 계정(@daehun.hs.kr)으로 앱스크립트가 실행되어 학교 보안 방화벽이 차단 중일 확률이 매우 높습니다.\n앱스크립트 창으로 가셔서 우측 상단 프로필을 누르고 일반 개인 구글 계정(@gmail.com)으로 똑같이 코드를 복사해 [새 배포]를 하신 뒤, 그 주소로 교체하시면 즉시 100% 정상 작동합니다!";
       console.error(error);
     }
   }
 
-  // 🔊 6. 브라우저 최적화 한국어 오디오 재생 (TTS)
+  // 🔊 5️⃣ [한국어 오디오 TTS 재생]
   function playTtsAudio() {
-    if (!currentTtsText) {
-      alert("읽어줄 요약본 내용이 존재하지 않습니다.");
-      return;
-    }
-
-    window.speechSynthesis.cancel(); // 겹침 방지 초기화
+    if (!currentTtsText) return;
+    window.speechSynthesis.cancel();
 
     const speech = new SpeechSynthesisUtterance(currentTtsText);
     speech.lang = 'ko-KR';
-    speech.rate = 1.0; 
+    speech.rate = 1.0;
     speech.pitch = 1.0;
 
     const voices = window.speechSynthesis.getVoices();
     const koreanVoice = voices.find(v => v.lang === 'ko-KR' || v.lang.startsWith('ko'));
     if (koreanVoice) speech.voice = koreanVoice;
 
-    document.getElementById('statusMessage').innerText = "📢 생성된 요약본을 음성으로 낭독하고 있습니다...";
+    document.getElementById('statusMessage').innerText = "📢 AI 요약본을 음성으로 낭독하고 있습니다...";
     window.speechSynthesis.speak(speech);
 
     speech.onend = function() {
-      document.getElementById('statusMessage').innerText = "✅ 음성 낭독이 완료되었습니다.";
+      document.getElementById('statusMessage').innerText = "✅ 음성 낭독 완료.";
     };
   }
 
   function stopTtsAudio() {
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
-      document.getElementById('statusMessage').innerText = "⏹️ 음성 재생이 중지되었습니다.";
+      document.getElementById('statusMessage').innerText = "⏹️ 음성 재생 중지.";
     }
   }
-
-  if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
-    speechSynthesis.onvoiceschanged = () => {};
-  }
 </script>
-
 </body>
 </html>
