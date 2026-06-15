@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI 학업 지원 플래너 & 족보 요약기</title>
+  <title>개인 맞춤형 AI 학업 도우미</title>
   
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -93,7 +93,7 @@
     </div>
   </div>
 
-  <h1>🎓 AI 학업 지원 플래너</h1>
+  <h1>🎓 개인 맞춤형 AI 학업 도우미</h1>
   
   <div class="main-content" id="mainPlannerContent">
     <div class="input-group">
@@ -104,10 +104,11 @@
       <label>시험 범위 및 학습 내용</label>
       <textarea id="range" rows="3" placeholder="예: 교과서 45p~80p, 세포 분열과 유전 법칙 단원"></textarea>
     </div>
-    <button class="btn btn-blue" style="width:100%; padding:12px; font-size:15px;" onclick="addSchedule()">📅 플래너에 일정 저장</button>
+    
+    <button class="btn btn-blue" style="width:100%; padding:12px; font-size:15px;" onclick="addSchedule()">📝 시험 범위 및 학습 데이터 등록</button>
 
     <div class="list-container">
-      <h3>📋 나의 수행평가 & AI 학습 지원 목록</h3>
+      <h3>📋 등록된 시험 범위 및 학습 데이터 목록</h3>
       <div id="scheduleList">데이터를 불러오는 중입니다...</div>
     </div>
 
@@ -125,7 +126,7 @@
 </div>
 
 <script>
-  // 1️⃣ [파이어베이스 초기화 및 최신 앱스크립트 주소 설정]
+  // 1️⃣ [파이어베이스 초기화 및 앱스크립트 주소 설정]
   const firebaseConfig = {
     apiKey: "AIzaSyAbZphaQMs38wC0zRDBXOT7oiRe2p8ABQs",
     authDomain: "yaho-9c14e.firebaseapp.com",
@@ -140,7 +141,7 @@
   const auth = firebase.auth();
   const database = firebase.database();
   
-  // 🔗 방금 새로 발급하신 초정밀 주소 완벽 맵핑 완료!
+  // 🔗 ⚠️ [주의] 아까 작동 성공한 앱스크립트 웹앱 주소를 여기에 "반드시 정확히 복사-붙여넣기" 하세요!
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyHH9XE36KpmC06ey5r3ZCPtfRLZEPSXAHaL3XYuJZLQEz9Pfck6I4QZ9K0N8tE6uft/exec';
   
   let currentUser = null;
@@ -205,7 +206,7 @@
       localSchedules = [];
       
       if (!data) {
-        listDiv.innerHTML = "<p style='text-align:center; color:#999;'>등록된 일정이 없습니다. 첫 일정을 저장해 보세요!</p>";
+        listDiv.innerHTML = "<p style='text-align:center; color:#999;'>등록된 학습 데이터가 없습니다. 첫 데이터를 등록해 보세요!</p>";
         return;
       }
       
@@ -228,15 +229,15 @@
 
   function deleteSchedule(key) {
     if (!currentUser) return;
-    if (confirm("정말 이 일정을 삭제하시겠습니까?")) {
+    if (confirm("정말 이 데이터를 삭제하시겠습니까?")) {
       database.ref('users/' + currentUser.uid + '/schedules/' + key).remove();
     }
   }
 
-  // 🧠 4️⃣ [오타 없는 구글 서버 규격 연동 제미나이 AI 요약 함수]
+  // 🧠 4️⃣ [제미나이 연동 요약 기능]
   async function generateAiSummary() {
     if (localSchedules.length === 0) {
-      alert("플래너에 등록된 학습 내용이 없습니다.");
+      alert("등록된 학습 내용이 없습니다.");
       return;
     }
 
@@ -244,7 +245,7 @@
     const summaryBox = document.getElementById('summaryBox');
     const audioSection = document.getElementById('audioSection');
     
-    statusMsg.innerText = "⚡ 개인 계정 우회로 가동! 제미나이가 시험 범위 족보를 추출하는 중입니다...";
+    statusMsg.innerText = "⚡ 제미나이가 실시간 시험 범위 족보를 추출하는 중입니다...";
     summaryBox.style.display = 'none';
     audioSection.style.display = 'none';
     stopTtsAudio();
@@ -253,38 +254,36 @@
     let promptQuestion = `아래 시험 범위들을 분석해서 고등학교 시험에 무조건 나오는 핵심 요점정리 족보를 만들어줘. 암기 팁도 포함해줘:\n\n${scheduleText}`;
 
     try {
-      // 💡 구글 표준 웹앱 통신 규격에 맞춰 안전하게 요청 전송
       const response = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
         body: JSON.stringify({ question: promptQuestion })
       });
 
-      if (!response.ok) throw new Error("구글 앱스크립트 응답 실패");
+      if (!response.ok) throw new Error("구글 앱스크립트 서버 응답 실패");
 
       const data = await response.json();
 
       if (data.error) {
-        statusMsg.innerText = "❌ 앱스크립트 오류: " + data.error;
+        statusMsg.innerText = "❌ 앱스크립트 내부 에러: " + data.error;
       } else {
         statusMsg.innerText = "✅ 족보 요약본 생성 완료!";
         summaryBox.innerText = data.answer;
         summaryBox.style.display = 'block';
         
-        // 특수문자를 깔끔히 청소한 TTS 전용 텍스트 탑재
         currentTtsText = data.ttsText || data.answer.replace(/[*#`_\-]/g, ' ');
-        audioSection.style.display = 'block'; // 오디오 컨트롤 온!
+        audioSection.style.display = 'block';
       }
     } catch (error) {
-      statusMsg.innerText = "❌ 오류 발생: Failed to fetch\n\n💡 [체크리스트]\n1. 앱스크립트 창에서 오타 수정된 최신 코드로 버전을 [새 버전]으로 선택해 재배포했는지 확인해 주세요.\n2. 깃허브 배포가 완료될 때까지 약 30초 대기 후 강력 새로고침을 해주세요.";
+      statusMsg.innerText = "❌ 오류 발생: 연동 실패\n\n💡 앱스크립트 주소가 올바르게 들어가 있는지 다시 확인해 주세요.";
       console.error(error);
     }
   }
 
-  // 🔊 5️⃣ [브라우저 내장엔진 최적화 한국어 음성 출력]
+  // 🔊 5️⃣ [한국어 음성 출력]
   function playTtsAudio() {
     if (!currentTtsText) return;
-    window.speechSynthesis.cancel(); // 낭독 꼬임 원천 차단
+    window.speechSynthesis.cancel();
 
     const speech = new SpeechSynthesisUtterance(currentTtsText);
     speech.lang = 'ko-KR';
