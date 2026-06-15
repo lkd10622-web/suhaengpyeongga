@@ -244,7 +244,8 @@
       measurementId: "G-SEWH1149ZZ"
     };
 
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzJxbPLRSj0YFf7SbUjpFL9s4V3im-F6u8lyU77PDNMLuI1K9a1RXOFPbeeCvIOm_vQ7A/exec';
+    // 🌟 새로 보내주신 앱스크립트 웹앱 주소 정밀 반영 완료!
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycdGRp8kwZX8TE13sssm8rNcjSkNp1-KVaSQxLz8D6PTqA1J1bLvg3Dg0lKtLcEFFIyg/exec';
 
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
@@ -314,7 +315,6 @@
           const key = childSnapshot.key;
           const item = childSnapshot.val();
 
-          // UI 명칭을 '지식 요약 노트' 콘셉트로 일관되게 정형화
           const itemHtml = `
             <div class="schedule-item">
               <h3>📘 [${item.subject}] 수행평가 및 시험 일정</h3>
@@ -339,9 +339,6 @@
       });
     }
 
-    // ----------------------------------------------------
-    // [1단계] 고품질 요약 노트 생성 프로세스
-    // ----------------------------------------------------
     async function generateSummaryNote(key, subject, range) {
       const btn = document.getElementById(`summary-btn-${key}`);
       const aiBox = document.getElementById(`ai-box-${key}`);
@@ -366,7 +363,7 @@
         const chatData = await chatResponse.json();
         if (chatData.answer) {
           aiBox.innerText = chatData.answer;
-          audioUI.classList.remove('hidden'); // 요약문 출력 직후 음성 가이드 버튼 표시
+          audioUI.classList.remove('hidden'); 
           btn.textContent = "✅ 요약 노트 생성 완료";
         } else {
           throw new Error(chatData.error || "데이터 응답 실패");
@@ -378,9 +375,6 @@
       }
     }
 
-    // ----------------------------------------------------
-    // [2단계] 생성된 지식 정리 텍스트를 오디오로 인코딩
-    // ----------------------------------------------------
     async function listenToSummary(key, subject) {
       const btn = document.getElementById(`tts-btn-${key}`);
       const summaryText = document.getElementById(`ai-box-${key}`).innerText;
